@@ -8,9 +8,11 @@ from fastapi import APIRouter
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import api_keys_router
 from app.modules.auth.router import router as auth_router
+from app.modules.nodes.router import router as node_types_router
 from app.modules.organizations.router import invitations_router
 from app.modules.organizations.router import router as organizations_router
 from app.modules.projects.router import router as projects_router
+from app.modules.workflows.router import router as workflows_router
 
 router = APIRouter(prefix="/api/v1")
 
@@ -20,5 +22,7 @@ router.include_router(organizations_router)
 router.include_router(invitations_router)
 router.include_router(projects_router)
 router.include_router(audit_router)
+router.include_router(node_types_router)
+router.include_router(workflows_router)
 
 # Further module routers are included here as they land.

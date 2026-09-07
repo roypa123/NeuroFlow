@@ -1,0 +1,434 @@
+[
+  {
+    "key": "neuroflow.code",
+    "version": 1,
+    "name": "Code",
+    "group": "data",
+    "category": "Core",
+    "description": "Run a Python expression against the input items.",
+    "icon": "code",
+    "color": "cat-data",
+    "aliases": [
+      "python",
+      "script",
+      "function"
+    ],
+    "subtitle": null,
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "code",
+        "displayName": "Code",
+        "type": "code",
+        "default": "items",
+        "required": true,
+        "description": "A Python expression whose value becomes the output. `items` is a list of dicts (the input item JSON); the expression must evaluate to a dict or a list of dicts.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": {
+          "editorLanguage": "python",
+          "rows": 10
+        },
+        "noDataExpression": true
+      }
+    ],
+    "idempotent": false,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.http",
+    "version": 1,
+    "name": "HTTP Request",
+    "group": "action",
+    "category": "Core",
+    "description": "Make an HTTP request to any URL.",
+    "icon": "globe",
+    "color": "cat-app",
+    "aliases": [
+      "api",
+      "rest",
+      "curl",
+      "fetch",
+      "webhook"
+    ],
+    "subtitle": "={{ $parameter.method }} {{ $parameter.url }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "method",
+        "displayName": "Method",
+        "type": "options",
+        "default": "GET",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "GET",
+            "value": "GET"
+          },
+          {
+            "label": "POST",
+            "value": "POST"
+          },
+          {
+            "label": "PUT",
+            "value": "PUT"
+          },
+          {
+            "label": "PATCH",
+            "value": "PATCH"
+          },
+          {
+            "label": "DELETE",
+            "value": "DELETE"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "url",
+        "displayName": "URL",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": "https://api.example.com/v1/users",
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "sendBody",
+        "displayName": "Send Body",
+        "type": "boolean",
+        "default": false,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "method": [
+              "POST",
+              "PUT",
+              "PATCH"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "body",
+        "displayName": "Body",
+        "type": "json",
+        "default": {},
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "sendBody": [
+              true
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "timeout",
+        "displayName": "Timeout (ms)",
+        "type": "number",
+        "default": 30000,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": false,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.if",
+    "version": 1,
+    "name": "IF",
+    "group": "flow",
+    "category": "Core",
+    "description": "Routes items to true/false outputs based on a condition.",
+    "icon": "split",
+    "color": "cat-flow",
+    "aliases": [
+      "condition",
+      "branch",
+      "switch"
+    ],
+    "subtitle": "={{ $parameter.value1 }} {{ $parameter.operator }} {{ $parameter.value2 }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": "true"
+      },
+      {
+        "type": "main",
+        "label": "false"
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "value1",
+        "displayName": "Value 1",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "operator",
+        "displayName": "Operator",
+        "type": "options",
+        "default": "equals",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Equals",
+            "value": "equals"
+          },
+          {
+            "label": "Not Equals",
+            "value": "notEquals"
+          },
+          {
+            "label": "Contains",
+            "value": "contains"
+          },
+          {
+            "label": "Greater Than",
+            "value": "greaterThan"
+          },
+          {
+            "label": "Less Than",
+            "value": "lessThan"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "value2",
+        "displayName": "Value 2",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.manualTrigger",
+    "version": 1,
+    "name": "Manual Trigger",
+    "group": "trigger",
+    "category": "Core",
+    "description": "Runs the workflow when you click Test in the editor.",
+    "icon": "mouse-pointer-click",
+    "color": "cat-core",
+    "aliases": [
+      "manual",
+      "test"
+    ],
+    "subtitle": null,
+    "documentationUrl": null,
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.noOp",
+    "version": 1,
+    "name": "No-Op",
+    "group": "flow",
+    "category": "Core",
+    "description": "Does nothing. Useful for organizing a graph visually.",
+    "icon": "circle-dashed",
+    "color": "cat-core",
+    "aliases": [
+      "noop",
+      "passthrough",
+      "do nothing"
+    ],
+    "subtitle": null,
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.set",
+    "version": 1,
+    "name": "Set",
+    "group": "data",
+    "category": "Core",
+    "description": "Build or reshape item JSON.",
+    "icon": "pencil-line",
+    "color": "cat-data",
+    "aliases": [
+      "edit fields",
+      "set field",
+      "assign"
+    ],
+    "subtitle": "={{ $parameter.mode }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "mode",
+        "displayName": "Mode",
+        "type": "options",
+        "default": "merge",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Merge with input",
+            "value": "merge"
+          },
+          {
+            "label": "Keep only fields set",
+            "value": "keepOnlySet"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "fields",
+        "displayName": "Fields",
+        "type": "json",
+        "default": {},
+        "required": true,
+        "description": "JSON object merged into (or replacing) each item.",
+        "placeholder": "{\"status\": \"processed\"}",
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  }
+]

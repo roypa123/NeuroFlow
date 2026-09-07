@@ -17,6 +17,7 @@ from app.modules.auth import models as auth_models  # noqa: E402, F401
 from app.modules.organizations import models as organizations_models  # noqa: E402, F401
 from app.modules.projects import models as projects_models  # noqa: E402, F401
 from app.modules.users import models as users_models  # noqa: E402, F401
+from app.modules.workflows import models as workflows_models  # noqa: E402, F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
