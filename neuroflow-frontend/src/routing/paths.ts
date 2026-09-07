@@ -4,8 +4,11 @@ export const paths = {
   login: () => '/login',
   signup: () => '/signup',
   forgotPassword: () => '/forgot-password',
+  resetPassword: () => '/reset-password',
 
   home: () => '/',
+
+  acceptInvitation: (token: string) => `/invitations/${token}/accept`,
 
   workflows: () => '/workflows',
   workflowEditor: (workflowId: string) => `/workflows/${workflowId}`,

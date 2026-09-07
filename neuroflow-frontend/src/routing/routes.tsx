@@ -10,6 +10,8 @@ import { paths } from './paths'
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
 const SignupPage = lazy(() => import('@/pages/auth/SignupPage'))
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage'))
+const AcceptInvitationPage = lazy(() => import('@/pages/organizations/AcceptInvitationPage'))
 
 const WorkflowListPage = lazy(() => import('@/pages/workflows/WorkflowListPage'))
 const WorkflowEditorPage = lazy(() => import('@/pages/workflows/WorkflowEditorPage'))
@@ -62,6 +64,15 @@ export const router = createBrowserRouter([
       <RequireGuest>
         <ForgotPasswordPage />
       </RequireGuest>,
+    ),
+  },
+  { path: paths.resetPassword(), element: withSuspense(<ResetPasswordPage />) },
+  {
+    path: paths.acceptInvitation(':token'),
+    element: withSuspense(
+      <RequireAuth>
+        <AcceptInvitationPage />
+      </RequireAuth>,
     ),
   },
   { path: paths.home(), element: <Navigate to={paths.workflows()} replace /> },

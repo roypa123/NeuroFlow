@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 
@@ -38,7 +39,11 @@ os.environ.setdefault(
 
 import pytest  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine  # noqa: E402
+from sqlalchemy.ext.asyncio import (  # noqa: E402
+    AsyncEngine,
+    AsyncSession,
+    create_async_engine,
+)
 from testcontainers.postgres import PostgresContainer  # noqa: E402
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -59,8 +64,10 @@ def postgres_dsn() -> Iterator[str]:
 
 @pytest.fixture(scope="session")
 async def migrated_engine(postgres_dsn: str) -> AsyncIterator[AsyncEngine]:
-    subprocess.run(
-        ["alembic", "upgrade", "head"],
+    # sys.executable, not a bare "alembic", so this resolves the same
+    # interpreter/venv running pytest itself regardless of PATH.
+    subprocess.run(  # noqa: S603 -- fixed argv, no untrusted input
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
         cwd=BACKEND_ROOT,
         env={**os.environ, "DATABASE_URL": postgres_dsn},
         check=True,

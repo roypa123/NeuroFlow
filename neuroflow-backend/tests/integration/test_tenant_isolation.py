@@ -7,7 +7,7 @@ parameterized here against a caller from a *different* organization.
 """
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from typing import Any
 from uuid import UUID
 
@@ -38,7 +38,11 @@ CrossTenantCase = Callable[[UUID, UUID], tuple[str, str, dict[str, Any] | None]]
 
 CROSS_TENANT_CASES: list[CrossTenantCase] = [
     lambda org_id, _project_id: ("GET", f"/organizations/{org_id}", None),
-    lambda org_id, _project_id: ("PATCH", f"/organizations/{org_id}", {"name": "Hijacked"}),
+    lambda org_id, _project_id: (
+        "PATCH",
+        f"/organizations/{org_id}",
+        {"name": "Hijacked"},
+    ),
     lambda org_id, _project_id: ("GET", f"/organizations/{org_id}/members", None),
     lambda org_id, _project_id: (
         "POST",
@@ -46,7 +50,11 @@ CROSS_TENANT_CASES: list[CrossTenantCase] = [
         {"email": "x@example.com", "role": "member"},
     ),
     lambda _org_id, project_id: ("GET", f"/projects/{project_id}", None),
-    lambda _org_id, project_id: ("PATCH", f"/projects/{project_id}", {"name": "Hijacked"}),
+    lambda _org_id, project_id: (
+        "PATCH",
+        f"/projects/{project_id}",
+        {"name": "Hijacked"},
+    ),
     lambda _org_id, project_id: ("DELETE", f"/projects/{project_id}", None),
 ]
 

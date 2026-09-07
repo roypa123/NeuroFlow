@@ -4,9 +4,12 @@ conflicts. See docs/09-domain-modules.md #9.4 and
 docs/11-api-design.md #11.6."""
 from __future__ import annotations
 
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import Role
+from app.core.security import create_access_token
+from app.modules.organizations.models import OrganizationMember
 from tests.factories import make_actor
 
 
@@ -14,7 +17,9 @@ def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def test_member_cannot_invite_others(client, db_session: AsyncSession) -> None:
+async def test_member_cannot_invite_others(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
     member = await make_actor(
         db_session, email="member@example.com", org_name="Org", role=Role.MEMBER
     )
@@ -28,7 +33,9 @@ async def test_member_cannot_invite_others(client, db_session: AsyncSession) -> 
     assert response.status_code == 403, response.text
 
 
-async def test_viewer_cannot_create_a_project(client, db_session: AsyncSession) -> None:
+async def test_viewer_cannot_create_a_project(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
     viewer = await make_actor(
         db_session, email="viewer@example.com", org_name="Org", role=Role.VIEWER
     )
@@ -43,7 +50,7 @@ async def test_viewer_cannot_create_a_project(client, db_session: AsyncSession) 
 
 
 async def test_removing_the_last_owner_is_rejected(
-    client, db_session: AsyncSession
+    client: AsyncClient, db_session: AsyncSession
 ) -> None:
     owner = await make_actor(
         db_session, email="owner@example.com", org_name="Org", role=Role.OWNER
@@ -58,7 +65,7 @@ async def test_removing_the_last_owner_is_rejected(
 
 
 async def test_demoting_the_last_owner_is_rejected(
-    client, db_session: AsyncSession
+    client: AsyncClient, db_session: AsyncSession
 ) -> None:
     owner = await make_actor(
         db_session, email="owner2@example.com", org_name="Org", role=Role.OWNER
@@ -74,11 +81,8 @@ async def test_demoting_the_last_owner_is_rejected(
 
 
 async def test_removing_a_co_owner_is_allowed_when_another_owner_remains(
-    client, db_session: AsyncSession
+    client: AsyncClient, db_session: AsyncSession
 ) -> None:
-    from app.core.security import create_access_token
-    from app.modules.organizations.models import OrganizationMember
-
     owner_1 = await make_actor(
         db_session, email="owner-1@example.com", org_name="Org", role=Role.OWNER
     )
@@ -110,7 +114,7 @@ async def test_removing_a_co_owner_is_allowed_when_another_owner_remains(
 
 
 async def test_duplicate_invitation_is_a_conflict(
-    client, db_session: AsyncSession
+    client: AsyncClient, db_session: AsyncSession
 ) -> None:
     owner = await make_actor(
         db_session, email="owner3@example.com", org_name="Org", role=Role.OWNER
@@ -133,7 +137,7 @@ async def test_duplicate_invitation_is_a_conflict(
 
 
 async def test_accepting_an_invitation_sent_to_a_different_email_is_rejected(
-    client, db_session: AsyncSession
+    client: AsyncClient, db_session: AsyncSession
 ) -> None:
     owner = await make_actor(
         db_session, email="owner4@example.com", org_name="Org", role=Role.OWNER

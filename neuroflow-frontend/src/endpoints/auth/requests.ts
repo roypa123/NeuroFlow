@@ -37,3 +37,7 @@ export async function forgotPassword(email: string): Promise<void> {
   // docs/15-security-and-credentials.md #15.2 (no user enumeration).
   await apiClient.post('/auth/forgot-password', { email })
 }
+
+export async function resetPassword(input: { token: string; newPassword: string }): Promise<void> {
+  await apiClient.post('/auth/reset-password', input)
+}
