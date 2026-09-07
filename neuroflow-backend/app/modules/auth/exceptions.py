@@ -2,7 +2,7 @@
 docs/08-backend-architecture.md #8.5."""
 from __future__ import annotations
 
-from app.core.exceptions import ConflictError, UnauthorizedError
+from app.core.exceptions import ConflictError, NotFoundError, UnauthorizedError
 
 
 class EmailAlreadyRegisteredError(ConflictError):
@@ -19,3 +19,7 @@ class InvalidRefreshTokenError(UnauthorizedError):
 
 class InvalidPasswordResetTokenError(UnauthorizedError):
     code = "auth.invalid_password_reset_token"
+
+
+class ApiKeyNotFoundError(NotFoundError):
+    code = "auth.api_key_not_found"

@@ -6,6 +6,7 @@ the auth module (they are stored hashed, never as JWTs).
 """
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
@@ -16,6 +17,16 @@ from passlib.context import CryptContext
 from app.core.config import get_settings
 
 _pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+
+
+def hash_opaque_token(token: str) -> str:
+    """SHA-256 over a randomly-generated opaque token (refresh tokens,
+    password-reset tokens, API keys): the token itself already carries all
+    the entropy, so this is a lookup digest, not a password hash -- argon2
+    would just add pointless CPU cost. Shared so every module hashing one
+    of these uses the exact same digest, since the hash is also the
+    lookup key at verification time."""
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def hash_password(password: str) -> str:

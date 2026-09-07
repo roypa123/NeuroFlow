@@ -7,7 +7,6 @@ nothing there needs it yet. See docs/08-backend-architecture.md #8.1.
 """
 from __future__ import annotations
 
-import hashlib
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -15,16 +14,25 @@ from uuid import UUID
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
-from app.core.permissions import Role
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.permissions import Permission, Role
+from app.core.security import (
+    create_access_token,
+    hash_opaque_token,
+    hash_password,
+    verify_password,
+)
 from app.core.uuid7 import uuid7
+from app.modules.audit.service import AuditService
 from app.modules.auth.exceptions import (
+    ApiKeyNotFoundError,
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
     InvalidPasswordResetTokenError,
     InvalidRefreshTokenError,
 )
+from app.modules.auth.models import ApiKey
 from app.modules.auth.repository import (
+    ApiKeyRepository,
     PasswordResetTokenRepository,
     RefreshTokenRepository,
 )
@@ -34,17 +42,11 @@ from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 
 PASSWORD_RESET_TTL = timedelta(hours=1)
+API_KEY_PREFIX = "nf_live_"  # noqa: S105 -- a public marker, not a secret
 
 Memberships = list[tuple[Organization, Role]]
 
 logger = get_logger(__name__)
-
-
-def _hash_token(token: str) -> str:
-    # SHA-256 over a randomly-generated token: the token itself already
-    # carries all the entropy, so this is a lookup digest, not a password
-    # hash -- argon2 (used for passwords) would just add pointless CPU cost.
-    return hashlib.sha256(token.encode()).hexdigest()
 
 
 @dataclass(slots=True, frozen=True)
@@ -64,11 +66,15 @@ class AuthService:
         organizations: OrganizationService,
         refresh_tokens: RefreshTokenRepository,
         password_reset_tokens: PasswordResetTokenRepository,
+        api_keys: ApiKeyRepository,
+        audit: AuditService,
     ) -> None:
         self._users = users
         self._organizations = organizations
         self._refresh_tokens = refresh_tokens
         self._password_reset_tokens = password_reset_tokens
+        self._api_keys = api_keys
+        self._audit = audit
 
     async def register(self, *, email: str, password: str, name: str) -> Session:
         if await self._users.get_by_email(email) is not None:
@@ -97,7 +103,9 @@ class AuthService:
 
     async def refresh(self, *, refresh_token: str) -> Session:
         now = datetime.now(UTC)
-        stored = await self._refresh_tokens.get_by_hash(_hash_token(refresh_token))
+        stored = await self._refresh_tokens.get_by_hash(
+            hash_opaque_token(refresh_token)
+        )
         if stored is None or stored.expires_at < now:
             raise InvalidRefreshTokenError("Refresh token is invalid or expired")
 
@@ -130,7 +138,9 @@ class AuthService:
         )
 
     async def logout(self, *, refresh_token: str) -> None:
-        stored = await self._refresh_tokens.get_by_hash(_hash_token(refresh_token))
+        stored = await self._refresh_tokens.get_by_hash(
+            hash_opaque_token(refresh_token)
+        )
         if stored is not None and stored.revoked_at is None:
             await self._refresh_tokens.revoke(stored, at=datetime.now(UTC))
 
@@ -150,7 +160,7 @@ class AuthService:
         token = secrets.token_urlsafe(32)
         await self._password_reset_tokens.create(
             user_id=user.id,
-            token_hash=_hash_token(token),
+            token_hash=hash_opaque_token(token),
             expires_at=datetime.now(UTC) + PASSWORD_RESET_TTL,
         )
         # No outbound email infra exists in this codebase yet -- logging the
@@ -160,7 +170,7 @@ class AuthService:
     async def reset_password(self, *, token: str, new_password: str) -> None:
         now = datetime.now(UTC)
         stored = await self._password_reset_tokens.get_active_by_hash(
-            _hash_token(token)
+            hash_opaque_token(token)
         )
         if stored is None or stored.expires_at < now:
             raise InvalidPasswordResetTokenError("Reset token is invalid or expired")
@@ -175,6 +185,53 @@ class AuthService:
         # reset was needed because credentials leaked, a session started
         # with the old password must not survive it.
         await self._refresh_tokens.revoke_all_for_user(user.id, at=now)
+
+    async def issue_api_key(
+        self,
+        *,
+        organization_id: UUID,
+        user_id: UUID,
+        name: str,
+        scopes: list[Permission],
+        expires_at: datetime | None,
+    ) -> tuple[ApiKey, str]:
+        raw = f"{API_KEY_PREFIX}{secrets.token_urlsafe(32)}"
+        api_key = await self._api_keys.create(
+            organization_id=organization_id,
+            user_id=user_id,
+            name=name,
+            key_hash=hash_opaque_token(raw),
+            prefix=raw[: len(API_KEY_PREFIX) + 4],
+            scopes=[scope.value for scope in scopes],
+            expires_at=expires_at,
+        )
+        await self._audit.record(
+            organization_id=organization_id,
+            actor_id=user_id,
+            action="auth.api_key_issued",
+            resource_type="api_key",
+            resource_id=api_key.id,
+            changes={"name": {"from": None, "to": name}},
+        )
+        return api_key, raw
+
+    async def list_api_keys(self, organization_id: UUID) -> list[ApiKey]:
+        return await self._api_keys.list_for_organization(organization_id)
+
+    async def revoke_api_key(
+        self, *, organization_id: UUID, key_id: UUID, actor_id: UUID
+    ) -> None:
+        api_key = await self._api_keys.get_by_id(key_id)
+        if api_key is None or api_key.organization_id != organization_id:
+            raise ApiKeyNotFoundError("API key not found")
+        await self._api_keys.revoke(api_key, at=datetime.now(UTC))
+        await self._audit.record(
+            organization_id=organization_id,
+            actor_id=actor_id,
+            action="auth.api_key_revoked",
+            resource_type="api_key",
+            resource_id=key_id,
+        )
 
     async def _issue_session(
         self, user: User, organizations: Memberships, *, family_id: UUID | None = None
@@ -192,7 +249,7 @@ class AuthService:
         expires_at = datetime.now(UTC) + settings.refresh_token_ttl
         await self._refresh_tokens.create(
             user_id=user.id,
-            token_hash=_hash_token(refresh_token),
+            token_hash=hash_opaque_token(refresh_token),
             family_id=family_id or uuid7(),
             expires_at=expires_at,
         )

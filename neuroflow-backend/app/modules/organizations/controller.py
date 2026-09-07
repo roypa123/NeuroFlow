@@ -72,7 +72,7 @@ class OrganizationController:
         role = await self._service.get_role_for_member(
             organization_id=organization_id, user_id=ctx.user_id
         )
-        require(role, Permission.MEMBER_MANAGE)
+        require(role, Permission.MEMBER_MANAGE, scopes=ctx.scopes)
         organization = await self._service.rename(
             organization_id=organization_id, name=payload.name, actor_id=ctx.user_id
         )
@@ -97,7 +97,7 @@ class OrganizationController:
         role = await self._service.get_role_for_member(
             organization_id=organization_id, user_id=ctx.user_id
         )
-        require(role, Permission.MEMBER_MANAGE)
+        require(role, Permission.MEMBER_MANAGE, scopes=ctx.scopes)
         issued = await self._service.invite(
             organization_id=organization_id,
             email=payload.email,
@@ -131,7 +131,7 @@ class OrganizationController:
         role = await self._service.get_role_for_member(
             organization_id=organization_id, user_id=ctx.user_id
         )
-        require(role, Permission.MEMBER_MANAGE)
+        require(role, Permission.MEMBER_MANAGE, scopes=ctx.scopes)
         await self._service.update_member_role(
             organization_id=organization_id,
             target_user_id=target_user_id,
@@ -148,7 +148,7 @@ class OrganizationController:
         role = await self._service.get_role_for_member(
             organization_id=organization_id, user_id=ctx.user_id
         )
-        require(role, Permission.MEMBER_MANAGE)
+        require(role, Permission.MEMBER_MANAGE, scopes=ctx.scopes)
         await self._service.remove_member(
             organization_id=organization_id,
             target_user_id=target_user_id,

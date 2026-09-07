@@ -5,19 +5,28 @@ Not implemented yet, and structurally out of scope until they exist:
 `logout-all`, `change-password`, `PATCH /me` -- and rate limiting on
 login/register/forgot-password (#11.5's table). None of the frontend's
 current auth pages call them.
+
+`api_keys_router` is a second router in this file, not `router`: the data
+is owned by `auth` (docs/09-domain-modules.md #9.2), but the URL nests
+under `/organizations/{organization_id}` rather than `/auth` -- the same
+prefix-mismatch reason organizations/router.py has two routers.
 """
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Cookie, Response, status
 
 from app.api.deps import RequestContextDep
 from app.core.config import get_settings
-from app.modules.auth.dependencies import AuthControllerDep
+from app.modules.auth.dependencies import ApiKeyControllerDep, AuthControllerDep
 from app.modules.auth.exceptions import InvalidRefreshTokenError
 from app.modules.auth.schemas import (
+    ApiKeyCreate,
+    ApiKeyCreated,
+    ApiKeyRead,
     ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
@@ -28,6 +37,9 @@ from app.modules.auth.schemas import (
 from app.modules.users.schemas import UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+api_keys_router = APIRouter(
+    prefix="/organizations/{organization_id}/api-keys", tags=["auth"]
+)
 
 # The refresh token travels only as an HttpOnly cookie, scoped to the one
 # path prefix that ever reads it -- never in a JSON body. See
@@ -138,3 +150,32 @@ async def reset_password(
     await controller.reset_password(
         token=payload.token, new_password=payload.new_password
     )
+
+
+@api_keys_router.get("", response_model=list[ApiKeyRead])
+async def list_api_keys(
+    organization_id: UUID, ctx: RequestContextDep, controller: ApiKeyControllerDep
+) -> list[ApiKeyRead]:
+    return await controller.list_for_organization(ctx, organization_id)
+
+
+@api_keys_router.post(
+    "", response_model=ApiKeyCreated, status_code=status.HTTP_201_CREATED
+)
+async def create_api_key(
+    organization_id: UUID,
+    payload: ApiKeyCreate,
+    ctx: RequestContextDep,
+    controller: ApiKeyControllerDep,
+) -> ApiKeyCreated:
+    return await controller.create(ctx, organization_id, payload)
+
+
+@api_keys_router.delete("/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_api_key(
+    organization_id: UUID,
+    key_id: UUID,
+    ctx: RequestContextDep,
+    controller: ApiKeyControllerDep,
+) -> None:
+    await controller.revoke(ctx, organization_id, key_id)

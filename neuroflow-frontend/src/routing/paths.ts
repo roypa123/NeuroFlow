@@ -26,4 +26,5 @@ export const paths = {
   settingsProfile: () => '/settings/profile',
   settingsMembers: () => '/settings/members',
   settingsApiKeys: () => '/settings/api-keys',
+  settingsAuditLog: () => '/settings/audit-log',
 } as const

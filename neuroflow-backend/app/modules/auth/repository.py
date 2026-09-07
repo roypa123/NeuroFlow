@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.auth.models import PasswordResetToken, RefreshToken
+from app.modules.auth.models import ApiKey, PasswordResetToken, RefreshToken
 
 
 class RefreshTokenRepository:
@@ -92,3 +92,59 @@ class PasswordResetTokenRepository:
 
     async def mark_used(self, token: PasswordResetToken, *, at: datetime) -> None:
         token.used_at = at
+
+
+class ApiKeyRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(
+        self,
+        *,
+        organization_id: UUID,
+        user_id: UUID,
+        name: str,
+        key_hash: str,
+        prefix: str,
+        scopes: list[str],
+        expires_at: datetime | None,
+    ) -> ApiKey:
+        api_key = ApiKey(
+            organization_id=organization_id,
+            user_id=user_id,
+            name=name,
+            key_hash=key_hash,
+            prefix=prefix,
+            scopes=scopes,
+            expires_at=expires_at,
+        )
+        self._session.add(api_key)
+        await self._session.flush()
+        return api_key
+
+    async def get_by_id(self, key_id: UUID) -> ApiKey | None:
+        return await self._session.get(ApiKey, key_id)
+
+    async def get_active_by_hash(self, key_hash: str) -> ApiKey | None:
+        stmt = select(ApiKey).where(
+            ApiKey.key_hash == key_hash, ApiKey.revoked_at.is_(None)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def list_for_organization(self, organization_id: UUID) -> list[ApiKey]:
+        stmt = (
+            select(ApiKey)
+            .where(
+                ApiKey.organization_id == organization_id, ApiKey.revoked_at.is_(None)
+            )
+            .order_by(ApiKey.created_at.desc())
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def revoke(self, api_key: ApiKey, *, at: datetime) -> None:
+        api_key.revoked_at = at
+
+    async def touch_last_used(self, api_key: ApiKey, *, at: datetime) -> None:
+        api_key.last_used_at = at

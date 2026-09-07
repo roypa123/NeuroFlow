@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 import { RequireAuth, RequireGuest } from './guards'
 import { AppShell } from '@/components/layout/AppShell'
+import { SettingsLayout } from '@/components/layout/SettingsLayout'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { paths } from './paths'
 
@@ -23,6 +24,7 @@ const CredentialListPage = lazy(() => import('@/pages/credentials/CredentialList
 const ProfilePage = lazy(() => import('@/pages/settings/ProfilePage'))
 const MembersPage = lazy(() => import('@/pages/settings/MembersPage'))
 const ApiKeysPage = lazy(() => import('@/pages/settings/ApiKeysPage'))
+const AuditLogPage = lazy(() => import('@/pages/settings/AuditLogPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
 function withSuspense(element: React.ReactNode) {
@@ -39,6 +41,10 @@ function authed(element: React.ReactNode) {
       <AppShell>{element}</AppShell>
     </RequireAuth>,
   )
+}
+
+function settingsPage(element: React.ReactNode) {
+  return authed(<SettingsLayout>{element}</SettingsLayout>)
 }
 
 export const router = createBrowserRouter([
@@ -87,8 +93,9 @@ export const router = createBrowserRouter([
   { path: paths.executions(), element: authed(<ExecutionListPage />) },
   { path: '/executions/:executionId', element: authed(<ExecutionDetailPage />) },
   { path: paths.credentials(), element: authed(<CredentialListPage />) },
-  { path: paths.settingsProfile(), element: authed(<ProfilePage />) },
-  { path: paths.settingsMembers(), element: authed(<MembersPage />) },
-  { path: paths.settingsApiKeys(), element: authed(<ApiKeysPage />) },
+  { path: paths.settingsProfile(), element: settingsPage(<ProfilePage />) },
+  { path: paths.settingsMembers(), element: settingsPage(<MembersPage />) },
+  { path: paths.settingsApiKeys(), element: settingsPage(<ApiKeysPage />) },
+  { path: paths.settingsAuditLog(), element: settingsPage(<AuditLogPage />) },
   { path: '*', element: withSuspense(<NotFoundPage />) },
 ])

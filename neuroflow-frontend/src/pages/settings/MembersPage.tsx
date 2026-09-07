@@ -266,7 +266,7 @@ function MembersPageContent({
   const removeMember = useRemoveMember(organizationId)
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -334,6 +334,6 @@ function MembersPageContent({
         open={inviteOpen}
         onOpenChange={setInviteOpen}
       />
-    </div>
+    </>
   )
 }

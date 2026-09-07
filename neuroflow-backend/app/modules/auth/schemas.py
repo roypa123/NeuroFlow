@@ -3,8 +3,12 @@ and neuroflow-frontend/src/types/auth.ts exactly -- the two must be kept in
 sync by hand since there is no shared schema generation yet."""
 from __future__ import annotations
 
+from datetime import datetime
+from uuid import UUID
+
 from pydantic import EmailStr, Field
 
+from app.core.permissions import Permission
 from app.core.schema import CamelModel
 from app.modules.users.schemas import UserRead
 
@@ -37,3 +41,27 @@ class TokenResponse(CamelModel):
 
 class LoginResponse(TokenResponse):
     user: UserRead
+
+
+class ApiKeyCreate(CamelModel):
+    name: str = Field(min_length=1, max_length=200)
+    scopes: list[Permission] = Field(min_length=1)
+    expires_at: datetime | None = None
+
+
+class ApiKeyRead(CamelModel):
+    id: UUID
+    name: str
+    prefix: str
+    scopes: list[Permission]
+    last_used_at: datetime | None
+    expires_at: datetime | None
+    created_at: datetime
+
+
+class ApiKeyCreated(ApiKeyRead):
+    # The raw secret, present ONLY in the response to the create call --
+    # ApiKeyRead (returned by list/get) has no field for it at all. Not
+    # redacted -- structurally absent, same rationale as CredentialRead
+    # per docs/08-backend-architecture.md #8.7.
+    key: str

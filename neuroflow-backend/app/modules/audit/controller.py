@@ -24,6 +24,6 @@ class AuditController:
         role = await self._organizations.get_role_for_member(
             organization_id=organization_id, user_id=ctx.user_id
         )
-        require(role, Permission.AUDIT_READ)
+        require(role, Permission.AUDIT_READ, scopes=ctx.scopes)
         logs = await self._service.list_for_organization(organization_id)
         return [AuditLogRead.model_validate(log) for log in logs]

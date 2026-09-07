@@ -66,9 +66,17 @@ def require(
     role: Role | None,
     permission: Permission,
     *,
+    scopes: frozenset[Permission] | None = None,
     resource_id: UUID | None = None,  # noqa: ARG001 -- reserved, see docstring
 ) -> None:
     """Raise PermissionError unless role grants permission.
+
+    `scopes`, when not None, is an additional narrowing check on top of the
+    role -- present for an API-key-authenticated request (RequestContext.scopes),
+    absent (None) for a normal JWT-authenticated one. An API key can only ever
+    be as powerful as its own declared scopes, regardless of how much its
+    owner's role would otherwise allow -- see docs/15-security-and-credentials.md
+    #15.4 and app/api/deps.py's RequestContext.
 
     resource_id is accepted (and currently unused beyond documentation
     intent) so call sites read naturally; a future revision may use it for
@@ -76,3 +84,5 @@ def require(
     """
     if role is None or not role_has_permission(role, permission):
         raise AppPermissionError(f"Missing permission: {permission.value}")
+    if scopes is not None and permission not in scopes:
+        raise AppPermissionError(f"API key does not have scope: {permission.value}")
