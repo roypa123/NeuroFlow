@@ -97,11 +97,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <SidebarMenu>
                 {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
                   <SidebarMenuItem key={to}>
-                    <SidebarMenuButton asChild isActive={location.pathname.startsWith(to)}>
-                      <Link to={to}>
-                        <Icon />
-                        <span>{label}</span>
-                      </Link>
+                    {/* @base-ui/react uses a `render` prop instead of Radix's
+                        asChild -- see docs/02-current-state-audit.md #2.2. */}
+                    <SidebarMenuButton
+                      render={<Link to={to} />}
+                      isActive={location.pathname.startsWith(to)}
+                    >
+                      <Icon />
+                      <span>{label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -112,23 +115,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to={paths.settingsProfile()}>
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
+              <SidebarMenuButton render={<Link to={paths.settingsProfile()} />}>
+                <Settings />
+                <span>Settings</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton size="lg">
-                    <Avatar className="size-6">
-                      <AvatarFallback>{user ? initials(user.name) : '?'}</AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">{user?.name ?? 'Loading...'}</span>
-                    <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
-                  </SidebarMenuButton>
+                <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
+                  <Avatar className="size-6">
+                    <AvatarFallback>{user ? initials(user.name) : '?'}</AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{user?.name ?? 'Loading...'}</span>
+                  <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="w-56">
                   <DropdownMenuLabel className="truncate">{user?.email}</DropdownMenuLabel>

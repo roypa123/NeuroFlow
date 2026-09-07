@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Pipeline shape follows docs/17-testing-strategy.md #17.11. Backend and
+# frontend jobs run independently and in parallel; nothing here blocks on
+# anything not yet real (E2E/testcontainers integration land with the
+# modules they exercise -- see docs/19-roadmap.md).
+jobs:
+  backend:
+    name: Backend (lint, types, arch, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: neuroflow-backend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: neuroflow-backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Type check (mypy --strict)
+        run: mypy app/ tests/
+
+      - name: Architecture boundaries (import-linter)
+        run: lint-imports
+
+      - name: Unit + integration tests
+        run: pytest -v --cov --cov-report=term-missing
+
+  frontend:
+    name: Frontend (lint, types, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: neuroflow-frontend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: neuroflow-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (ESLint, incl. architecture boundaries)
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests (incl. the React Flow / React 19 StrictMode spike)
+        run: npm run test
+
+      - name: Build
+        run: npm run build

@@ -1,9 +1,9 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -29,44 +29,44 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
-  // Attempt session resume via the refresh cookie exactly once at boot,
-  // before we know whether a session exists at all.
-  const [bootAttempted, setBootAttempted] = useState(false)
 
-  const { data: user, isLoading, isFetched } = useCurrentUser(bootAttempted)
+  // No stored access token survives a reload by design
+  // (docs/15-security-and-credentials.md #15.2); GET /auth/me fires
+  // unconditionally on mount, and a 401 drives exactly one refresh attempt
+  // through the normal interceptor path (docs/05 #5.3), which is what
+  // resumes a session from the HttpOnly refresh cookie.
+  const { data: user, isLoading, isFetched } = useCurrentUser(true)
 
   useEffect(() => {
     registerSessionExpiredHandler(() => {
       setAccessToken(null)
       queryClient.setQueryData(authKeys.me(), null)
     })
-    // No stored access token survives a reload by design (docs/15 #15.2);
-    // the interceptor's refresh path is what resumes a session using the
-    // HttpOnly cookie. Triggering /auth/me immediately lets its 401 drive
-    // that refresh through the normal interceptor path.
-    setBootAttempted(true)
   }, [queryClient])
 
-  const onAuthenticated = (accessToken: string, nextUser: User) => {
-    setAccessToken(accessToken)
-    queryClient.setQueryData(authKeys.me(), nextUser)
-  }
+  const onAuthenticated = useCallback(
+    (accessToken: string, nextUser: User) => {
+      setAccessToken(accessToken)
+      queryClient.setQueryData(authKeys.me(), nextUser)
+    },
+    [queryClient],
+  )
 
-  const signOut = () => {
+  const signOut = useCallback(() => {
     setAccessToken(null)
     queryClient.setQueryData(authKeys.me(), null)
     queryClient.clear()
-  }
+  }, [queryClient])
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user: user ?? null,
-      isLoading: !bootAttempted || (isLoading && !isFetched),
+      isLoading: isLoading && !isFetched,
       isAuthenticated: Boolean(user),
       onAuthenticated,
       signOut,
     }),
-    [user, isLoading, isFetched, bootAttempted],
+    [user, isLoading, isFetched, onAuthenticated, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

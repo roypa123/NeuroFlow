@@ -8,6 +8,28 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
+    /* Status tokens -- docs/07-ui-ux-design-system.md #7.2. Status is never
+       colour-only in the UI, but these are what the node status ring,
+       execution badges, and toasts key off of. */
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    /* Canvas tokens -- the workflow/agent editor background, dot grid, and edges. */
+    --color-canvas-bg: var(--canvas-bg);
+    --color-canvas-dot: var(--canvas-dot);
+    --color-edge: var(--edge);
+    --color-edge-active: var(--edge-active);
+    /* Node category tints -- icon tile backgrounds only, never used for
+       large surfaces (docs/07-ui-ux-design-system.md #7.1). */
+    --color-cat-trigger: var(--cat-trigger);
+    --color-cat-flow: var(--cat-flow);
+    --color-cat-data: var(--cat-data);
+    --color-cat-ai: var(--cat-ai);
+    --color-cat-app: var(--cat-app);
+    --color-cat-code: var(--cat-code);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -81,6 +103,28 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* Status -- docs/07-ui-ux-design-system.md #7.2 */
+    --success: oklch(0.62 0.17 149);
+    --success-foreground: oklch(0.985 0 0);
+    --warning: oklch(0.75 0.16 78);
+    --warning-foreground: oklch(0.2 0 0);
+    --info: oklch(0.62 0.16 250);
+    --info-foreground: oklch(0.985 0 0);
+
+    /* Canvas */
+    --canvas-bg: oklch(0.985 0 0);
+    --canvas-dot: oklch(0.9 0 0);
+    --edge: oklch(0.72 0 0);
+    --edge-active: var(--primary);
+
+    /* Node category tints */
+    --cat-trigger: oklch(0.7 0.17 40);
+    --cat-flow: oklch(0.65 0.16 275);
+    --cat-data: oklch(0.68 0.15 190);
+    --cat-ai: oklch(0.66 0.18 300);
+    --cat-app: oklch(0.67 0.14 220);
+    --cat-code: oklch(0.62 0.02 260);
 }
 
 .dark {
@@ -115,6 +159,30 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    /* Status -- lifted ~0.05-0.08 L and dropped ~0.01-0.02 C vs light, to
+       hold contrast against a dark ground without vibrating
+       (docs/07-ui-ux-design-system.md #7.10). */
+    --success: oklch(0.7 0.16 149);
+    --success-foreground: oklch(0.145 0 0);
+    --warning: oklch(0.8 0.15 78);
+    --warning-foreground: oklch(0.145 0 0);
+    --info: oklch(0.7 0.15 250);
+    --info-foreground: oklch(0.145 0 0);
+
+    /* Canvas -- a lighter dot grid, not an inverted one. */
+    --canvas-bg: oklch(0.16 0 0);
+    --canvas-dot: oklch(0.26 0 0);
+    --edge: oklch(0.42 0 0);
+    --edge-active: var(--primary);
+
+    /* Node category tints */
+    --cat-trigger: oklch(0.75 0.15 40);
+    --cat-flow: oklch(0.71 0.14 275);
+    --cat-data: oklch(0.73 0.13 190);
+    --cat-ai: oklch(0.72 0.16 300);
+    --cat-app: oklch(0.72 0.12 220);
+    --cat-code: oklch(0.68 0.02 260);
 }
 
 @layer base {

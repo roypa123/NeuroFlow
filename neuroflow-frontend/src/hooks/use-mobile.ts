@@ -2,18 +2,19 @@ import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
 
+// useSyncExternalStore rather than a state+effect pair: this is exactly the
+// "subscribe to a browser API, read its current value" case it exists for,
+// and it sidesteps the extra render an effect-driven setState would cause.
+function subscribe(onChange: () => void) {
+  const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+  mql.addEventListener("change", onChange)
+  return () => mql.removeEventListener("change", onChange)
+}
+
+function getSnapshot() {
+  return window.innerWidth < MOBILE_BREAKPOINT
+}
+
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
-
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
-
-  return !!isMobile
+  return React.useSyncExternalStore(subscribe, getSnapshot)
 }

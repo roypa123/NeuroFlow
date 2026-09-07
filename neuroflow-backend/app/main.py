@@ -11,9 +11,9 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.api.v1 import router as api_v1_router
@@ -41,7 +41,10 @@ def _verify_production_secrets(settings: Settings) -> None:
         name
         for name, value in (
             ("SECRET_KEY", settings.secret_key.get_secret_value()),
-            ("CREDENTIAL_MASTER_KEY", settings.credential_master_key.get_secret_value()),
+            (
+                "CREDENTIAL_MASTER_KEY",
+                settings.credential_master_key.get_secret_value(),
+            ),
         )
         if not value
     ]

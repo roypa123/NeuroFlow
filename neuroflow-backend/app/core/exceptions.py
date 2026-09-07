@@ -59,7 +59,9 @@ class ExternalServiceError(AppError):
     http_status = status.HTTP_502_BAD_GATEWAY
 
 
-def _error_body(code: str, message: str, request: Request, details: Any = None) -> dict:
+def _error_body(
+    code: str, message: str, request: Request, details: Any = None
+) -> dict[str, Any]:
     request_id = getattr(request.state, "request_id", None)
     body: dict[str, Any] = {"code": code, "message": message, "requestId": request_id}
     if details is not None:

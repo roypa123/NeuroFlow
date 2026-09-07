@@ -28,7 +28,7 @@ class RequestContext:
     request_id: str | None = None
 
 
-class Unauthorized(AppError):
+class UnauthorizedError(AppError):
     code = "unauthorized"
     http_status = 401
 
@@ -37,12 +37,12 @@ async def get_request_context(
     authorization: Annotated[str | None, Header()] = None,
 ) -> RequestContext:
     if not authorization or not authorization.lower().startswith("bearer "):
-        raise Unauthorized("Missing or malformed Authorization header")
+        raise UnauthorizedError("Missing or malformed Authorization header")
     token = authorization.split(" ", 1)[1]
     try:
         payload = decode_access_token(token)
     except jwt.PyJWTError as exc:
-        raise Unauthorized("Invalid or expired token") from exc
+        raise UnauthorizedError("Invalid or expired token") from exc
 
     role_value = payload.get("role")
     return RequestContext(

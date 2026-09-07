@@ -1,0 +1,19 @@
+# Serves the built SPA with client-side routing fallback. Reverse-proxying
+# /api and /webhook to the backend is handled by the root-level proxy in
+# docker-compose.yml (docs/18-deployment-and-operations.md #18.1) -- this
+# Caddyfile only needs to know about its own static files.
+:80 {
+	root * /srv
+	encode gzip
+
+	# config.js is regenerated per-container-start; never cache it.
+	@config path /config.js
+	header @config Cache-Control "no-store"
+
+	# Hashed asset filenames are safe to cache forever.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	try_files {path} /index.html
+	file_server
+}

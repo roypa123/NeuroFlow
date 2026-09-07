@@ -19,11 +19,11 @@ _pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return _pwd_context.hash(password)
+    return str(_pwd_context.hash(password))
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return _pwd_context.verify(password, password_hash)
+    return bool(_pwd_context.verify(password, password_hash))
 
 
 def create_access_token(
@@ -40,7 +40,9 @@ def create_access_token(
         "exp": now + settings.access_token_ttl,
     }
     return jwt.encode(
-        payload, settings.secret_key.get_secret_value(), algorithm=settings.jwt_algorithm
+        payload,
+        settings.secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
     )
 
 

@@ -36,10 +36,12 @@ class Cursor:
         return base64.urlsafe_b64encode(raw).decode()
 
     @classmethod
-    def decode(cls, token: str) -> "Cursor":
+    def decode(cls, token: str) -> Cursor:
         raw = base64.urlsafe_b64decode(token.encode())
         payload = json.loads(raw)
-        return cls(created_at=datetime.fromisoformat(payload["c"]), id=UUID(payload["i"]))
+        return cls(
+            created_at=datetime.fromisoformat(payload["c"]), id=UUID(payload["i"])
+        )
 
 
 def clamp_limit(limit: int | None) -> int:
@@ -62,7 +64,10 @@ class OffsetPage(BaseModel, Generic[T]):
 
 
 def build_keyset_page(
-    rows: list[Any], *, limit: int, cursor_fields: tuple[str, str] = ("created_at", "id")
+    rows: list[Any],
+    *,
+    limit: int,
+    cursor_fields: tuple[str, str] = ("created_at", "id"),
 ) -> tuple[list[Any], str | None, bool]:
     """rows must be fetched with limit + 1 so we can detect has_more without
     a second query."""

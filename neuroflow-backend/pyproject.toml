@@ -16,6 +16,15 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "S105", "S106", "ARG001"]
 "alembic/*" = ["N999"]
+# app/core/types.py: the name matches stdlib `types`, but it is never
+# imported except as app.core.types -- no real shadowing risk, and the
+# design doc (docs/08-backend-architecture.md #8.6) names it explicitly.
+"app/core/types.py" = ["A005"]
+"app/core/logging.py" = ["A005"]
+# FastAPI's lifespan contract requires the `app` parameter even when unused.
+"app/main.py" = ["ARG001"]
+# arq's on_startup/on_shutdown callback contract requires `ctx` even when unused.
+"app/worker.py" = ["ARG001"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -24,7 +33,7 @@ plugins = ["pydantic.mypy"]
 exclude = ["alembic/"]
 
 [[tool.mypy.overrides]]
-module = ["arq.*", "testcontainers.*", "factory.*"]
+module = ["arq.*", "testcontainers.*", "factory.*", "passlib.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -34,3 +43,26 @@ testpaths = ["tests"]
 [tool.coverage.run]
 source = ["app"]
 omit = ["app/nodes/*", "*/tests/*"]
+
+# Architectural boundaries enforced mechanically, not just by review -- see
+# docs/03-system-architecture.md #3.9 and docs/17-testing-strategy.md #17.7.
+# Only the two contracts checkable against what exists today are wired up;
+# module-level contracts (services must not import fastapi, one module's
+# repository must not import another's) are added as each module lands in
+# Phase 2+, once app/modules/*/service.py and .../repository.py exist to
+# check -- a contract naming a module that doesn't exist yet fails to build
+# rather than passing vacuously.
+[tool.importlinter]
+root_package = "app"
+
+[[tool.importlinter.contracts]]
+name = "API layer must not import the execution engine or node implementations"
+type = "forbidden"
+source_modules = ["app.api", "app.main"]
+forbidden_modules = ["app.engine", "app.nodes"]
+
+[[tool.importlinter.contracts]]
+name = "core/ is a leaf: it must not import the API, domain modules, or the engine"
+type = "forbidden"
+source_modules = ["app.core"]
+forbidden_modules = ["app.api", "app.modules", "app.engine", "app.nodes"]

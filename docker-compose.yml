@@ -1,0 +1,110 @@
+# Reference self-host stack -- docs/18-deployment-and-operations.md #18.3.
+# `docker compose up` should be a complete, working instance with no
+# managed-service dependency (docs/01-product-overview.md G4).
+#
+# api, worker, and scheduler share one image with different commands
+# (docs/03-system-architecture.md #3.3): a single build, no drift between
+# what the API and the worker can do.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: neuroflow
+      POSTGRES_USER: neuroflow
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-neuroflow}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neuroflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    # noeviction, not the default allkeys-lru: silently evicting a queued
+    # job under memory pressure is worse than a loud out-of-memory error --
+    # see docs/18-deployment-and-operations.md #18.3.
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy noeviction
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build: ./neuroflow-backend
+    command: alembic upgrade head
+    environment: &backend-env
+      ENVIRONMENT: "${ENVIRONMENT:-local}"
+      DATABASE_URL: "postgresql+psycopg://neuroflow:${DB_PASSWORD:-neuroflow}@postgres:5432/neuroflow"
+      REDIS_URL: "redis://redis:6379/0"
+      # Generate both with: openssl rand -base64 32
+      # (see .env.example -- the ":?" form fails the container clearly if unset)
+      SECRET_KEY: "${SECRET_KEY:?set SECRET_KEY in .env, see .env.example}"
+      CREDENTIAL_MASTER_KEY: "${CREDENTIAL_MASTER_KEY:?set CREDENTIAL_MASTER_KEY in .env, see .env.example}"
+      PUBLIC_URL: "${PUBLIC_URL:-http://localhost}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-[\"http://localhost\"]}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: ./neuroflow-backend
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: ./neuroflow-backend
+    command: arq app.worker.WorkerSettings
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  scheduler:
+    build: ./neuroflow-backend
+    command: python -m app.scheduler
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    # MUST remain 1 -- see docs/03-system-architecture.md #3.3. The
+    # in-process Redis lock is defence-in-depth, not a substitute for this.
+    deploy:
+      replicas: 1
+
+  web:
+    build: ./neuroflow-frontend
+    environment:
+      API_BASE_URL: /api/v1
+
+  proxy:
+    image: caddy:2-alpine
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
+    depends_on:
+      - api
+      - web
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:

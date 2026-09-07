@@ -62,7 +62,12 @@ def role_has_permission(role: Role, permission: Permission) -> bool:
     return permission in _ROLE_PERMISSIONS.get(role, frozenset())
 
 
-def require(role: Role | None, permission: Permission, *, resource_id: "UUID | None" = None) -> None:
+def require(
+    role: Role | None,
+    permission: Permission,
+    *,
+    resource_id: UUID | None = None,  # noqa: ARG001 -- reserved, see docstring
+) -> None:
     """Raise PermissionError unless role grants permission.
 
     resource_id is accepted (and currently unused beyond documentation

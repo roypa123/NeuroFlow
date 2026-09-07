@@ -22,7 +22,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // eslint-disable-next-line no-console -- no telemetry sink wired yet (Phase 8)
+    // No telemetry sink wired yet (Phase 8) -- console is the only sink.
     console.error('Unhandled render error', error, info.componentStack)
   }
 

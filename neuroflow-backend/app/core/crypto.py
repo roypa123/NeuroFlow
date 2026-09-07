@@ -64,4 +64,5 @@ def decrypt_credential(blob: EncryptedBlob, master_key_b64: str) -> dict[str, An
     wrap_nonce, wrapped = blob.encrypted_dek[:12], blob.encrypted_dek[12:]
     dek = AESGCM(master).decrypt(wrap_nonce, wrapped, None)
     plaintext = AESGCM(dek).decrypt(blob.nonce, blob.ciphertext, _AAD)
-    return json.loads(plaintext)
+    result: dict[str, Any] = json.loads(plaintext)
+    return result
