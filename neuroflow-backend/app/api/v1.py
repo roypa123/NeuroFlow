@@ -5,8 +5,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.modules.auth.router import router as auth_router
+
 router = APIRouter(prefix="/api/v1")
 
-# Module routers are included here as they land, e.g.:
-#   from app.modules.auth.router import router as auth_router
-#   router.include_router(auth_router)
+router.include_router(auth_router)
+
+# Further module routers are included here as they land.

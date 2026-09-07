@@ -34,6 +34,11 @@ class NotFoundError(AppError):
     http_status = status.HTTP_404_NOT_FOUND
 
 
+class UnauthorizedError(AppError):
+    code = "unauthorized"
+    http_status = status.HTTP_401_UNAUTHORIZED
+
+
 class ValidationError(AppError):
     code = "validation_error"
     http_status = status.HTTP_422_UNPROCESSABLE_CONTENT

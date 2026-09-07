@@ -15,7 +15,7 @@ from fastapi import Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
-from app.core.exceptions import AppError
+from app.core.exceptions import UnauthorizedError
 from app.core.permissions import Role
 from app.core.security import decode_access_token
 
@@ -26,11 +26,6 @@ class RequestContext:
     org_id: UUID | None
     role: Role | None
     request_id: str | None = None
-
-
-class UnauthorizedError(AppError):
-    code = "unauthorized"
-    http_status = 401
 
 
 async def get_request_context(

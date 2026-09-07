@@ -95,7 +95,12 @@ def create_app() -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[str(o) for o in settings.cors_origins],
+        # AnyHttpUrl normalises "http://localhost:5173" to
+        # "http://localhost:5173/" (trailing slash) -- but a browser's
+        # Origin header never has one, and CORSMiddleware matches
+        # allow_origins by exact string. Left un-stripped, no origin ever
+        # matches and every cross-origin request is silently rejected.
+        allow_origins=[str(o).rstrip("/") for o in settings.cors_origins],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

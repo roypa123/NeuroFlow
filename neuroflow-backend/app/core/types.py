@@ -9,7 +9,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import MetaData, func
+from sqlalchemy import DateTime, MetaData, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.core.uuid7 import uuid7
@@ -25,6 +25,10 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+    # Every `Mapped[datetime]` column is `timestamptz`, never naive
+    # `timestamp` -- docs/10-database-schema.md #10.6: "timestamptz always,
+    # UTC always". Set once here rather than per-column so it cannot drift.
+    type_annotation_map = {datetime: DateTime(timezone=True)}
 
 
 class UUIDPrimaryKey:

@@ -26,6 +26,6 @@ class User(Base, UUIDPrimaryKey, TimestampMixin):
     last_login_at: Mapped[datetime | None] = mapped_column(default=None)
     deleted_at: Mapped[datetime | None] = mapped_column(default=None)
 
-    memberships: Mapped[list["OrganizationMember"]] = relationship(
+    memberships: Mapped[list[OrganizationMember]] = relationship(
         back_populates="user"
     )
