@@ -1,66 +1,52 @@
 # Reference self-host stack -- docs/18-deployment-and-operations.md #18.3.
-# `docker compose up` should be a complete, working instance with no
-# managed-service dependency (docs/01-product-overview.md G4).
+#
+# Two deliberate deviations from a fully self-contained stack, both because
+# this host already has the infrastructure:
+#
+# 1. Postgres and Redis are NOT managed here -- they run as separate
+#    externally-provisioned services (e.g. Dokploy-managed instances on the
+#    target host) and are reached over DATABASE_URL / REDIS_URL from .env.
+# 2. There is no reverse-proxy container -- the host runs its own nginx,
+#    which terminates TLS and reverse-proxies to the ports `web` and `api`
+#    publish below. See proxy/neuroflow.conf for a starting nginx site
+#    config, and docs/03-system-architecture.md #3.1 for why Caddy-or-nginx
+#    was always the documented choice, not a hard dependency on Caddy.
+#
+# If you want the fully self-contained version instead (own Postgres,
+# Redis, and reverse-proxy container), see git history on this file.
 #
 # api, worker, and scheduler share one image with different commands
 # (docs/03-system-architecture.md #3.3): a single build, no drift between
 # what the API and the worker can do.
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: neuroflow
-      POSTGRES_USER: neuroflow
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-neuroflow}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U neuroflow"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  redis:
-    image: redis:7-alpine
-    # noeviction, not the default allkeys-lru: silently evicting a queued
-    # job under memory pressure is worse than a loud out-of-memory error --
-    # see docs/18-deployment-and-operations.md #18.3.
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy noeviction
-    volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   migrate:
     build: ./neuroflow-backend
     command: alembic upgrade head
     environment: &backend-env
       ENVIRONMENT: "${ENVIRONMENT:-local}"
-      DATABASE_URL: "postgresql+psycopg://neuroflow:${DB_PASSWORD:-neuroflow}@postgres:5432/neuroflow"
-      REDIS_URL: "redis://redis:6379/0"
+      # Both point at externally-provisioned instances -- set the real
+      # values in .env (see .env.example). The ":?" form fails the
+      # container clearly instead of silently trying localhost.
+      DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env, see .env.example}"
+      REDIS_URL: "${REDIS_URL:?set REDIS_URL in .env, see .env.example}"
       # Generate both with: openssl rand -base64 32
-      # (see .env.example -- the ":?" form fails the container clearly if unset)
       SECRET_KEY: "${SECRET_KEY:?set SECRET_KEY in .env, see .env.example}"
       CREDENTIAL_MASTER_KEY: "${CREDENTIAL_MASTER_KEY:?set CREDENTIAL_MASTER_KEY in .env, see .env.example}"
       PUBLIC_URL: "${PUBLIC_URL:-http://localhost}"
       CORS_ORIGINS: "${CORS_ORIGINS:-[\"http://localhost\"]}"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
-    depends_on:
-      postgres:
-        condition: service_healthy
     restart: "no"
 
   api:
     build: ./neuroflow-backend
     environment: *backend-env
+    # Published to the host so the host's own nginx can reverse-proxy
+    # /api and /webhook to 127.0.0.1:${API_PORT} -- see proxy/neuroflow.conf.
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
 
   worker:
     build: ./neuroflow-backend
@@ -69,8 +55,6 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
 
   scheduler:
     build: ./neuroflow-backend
@@ -79,8 +63,6 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
     # MUST remain 1 -- see docs/03-system-architecture.md #3.3. The
     # in-process Redis lock is defence-in-depth, not a substitute for this.
     deploy:
@@ -89,22 +71,11 @@ services:
   web:
     build: ./neuroflow-frontend
     environment:
+      # Relative path: correct regardless of which reverse proxy sits in
+      # front, as long as it serves the frontend and /api under the same
+      # public origin -- which is exactly what proxy/neuroflow.conf does.
       API_BASE_URL: /api/v1
-
-  proxy:
-    image: caddy:2-alpine
+    # Published to the host so the host's own nginx can reverse-proxy
+    # everything else to 127.0.0.1:${WEB_PORT}.
     ports:
-      - "${HTTP_PORT:-80}:80"
-    volumes:
-      - ./proxy/Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-    environment:
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
-    depends_on:
-      - api
-      - web
-
-volumes:
-  pgdata:
-  redisdata:
-  caddy_data:
+      - "127.0.0.1:${WEB_PORT:-3000}:80"

@@ -21,6 +21,15 @@ services:
 `api`, `worker`, and `scheduler` run the **same image** with different commands. This eliminates
 the "the worker has a different dependency set" class of bug outright, and halves build time.
 
+⚠️ **This is the general-case reference topology.** The `docker-compose.yml` actually in this repo
+takes a documented deviation from it, because the target host already has the infrastructure: it
+omits `postgres`/`redis` (points `DATABASE_URL`/`REDIS_URL` at externally-provisioned instances —
+e.g. Dokploy-managed — instead) and omits the `proxy` container (the host runs its own nginx,
+config in `proxy/neuroflow.conf`, terminating TLS and reverse-proxying to the ports `api` and `web`
+publish). Reasoning and instructions for reverting to the fully self-contained version live in the
+compose file's own header comment. Both choices are legitimate per §18.1's own framing — Caddy vs.
+nginx and managed vs. containerized datastores were never meant to be hard requirements.
+
 ## 18.2 Images
 
 **Backend** — multi-stage, non-root, no build toolchain in the runtime layer:
@@ -50,7 +59,7 @@ CMD ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]
 In hardened deployments, run workers from a separate image that includes it and keep it out of the
 API image entirely — the API never executes user code, so it should not carry a JS runtime.
 
-**Frontend** — built to static files and served by the proxy. No Node in production:
+**Frontend** — built to static files and served by a tiny static server. No Node in production:
 
 ```dockerfile
 FROM node:22-alpine AS builder
@@ -60,9 +69,9 @@ RUN npm ci
 COPY . .
 RUN npm run build          # tsc -b && vite build
 
-FROM caddy:2-alpine
-COPY --from=builder /app/dist /srv
-COPY Caddyfile /etc/caddy/Caddyfile
+FROM nginx:1.27-alpine     # or caddy:2-alpine -- either works; this repo uses nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 ```
 
 ⚠️ **The API base URL must be runtime-configurable, not baked in at build time.** Vite inlines
