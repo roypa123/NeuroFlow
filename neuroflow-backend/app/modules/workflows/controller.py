@@ -36,7 +36,7 @@ def _to_read(workflow: Workflow, version: WorkflowVersion) -> WorkflowRead:
         active_version_id=workflow.active_version_id,
         version=version.version,
         settings=WorkflowSettings.model_validate(workflow.settings),
-        graph=version.graph,  # type: ignore[arg-type]
+        graph=version.graph,
         created_at=workflow.created_at,
         updated_at=workflow.updated_at,
     )
@@ -74,7 +74,7 @@ def _to_version_detail(version: WorkflowVersion) -> WorkflowVersionDetail:
         note=version.note,
         created_by=version.created_by,
         created_at=version.created_at,
-        graph=version.graph,  # type: ignore[arg-type]
+        graph=version.graph,
     )
 
 
@@ -96,7 +96,12 @@ class WorkflowController:
             project_id=project_id, user_id=ctx.user_id
         )
         require(role, Permission.WORKFLOW_READ, scopes=ctx.scopes)
-        rows, version_numbers, next_cursor, has_more = await self._service.list_for_project(
+        (
+            rows,
+            version_numbers,
+            next_cursor,
+            has_more,
+        ) = await self._service.list_for_project(
             project_id=project_id,
             user_id=ctx.user_id,
             search=search,
@@ -109,7 +114,9 @@ class WorkflowController:
             items=items, next_cursor=next_cursor, has_more=has_more
         )
 
-    async def create(self, ctx: RequestContext, payload: WorkflowCreate) -> WorkflowRead:
+    async def create(
+        self, ctx: RequestContext, payload: WorkflowCreate
+    ) -> WorkflowRead:
         role = await self._service.get_role_for_project(
             project_id=payload.project_id, user_id=ctx.user_id
         )
@@ -156,7 +163,9 @@ class WorkflowController:
         )
         require(role, Permission.WORKFLOW_DELETE, scopes=ctx.scopes)
         await self._service.delete(
-            workflow=workflow, organization_id=project.organization_id, actor_id=ctx.user_id
+            workflow=workflow,
+            organization_id=project.organization_id,
+            actor_id=ctx.user_id,
         )
 
     async def activate(self, ctx: RequestContext, workflow_id: UUID) -> WorkflowRead:
@@ -165,7 +174,9 @@ class WorkflowController:
         )
         require(role, Permission.WORKFLOW_ACTIVATE, scopes=ctx.scopes)
         workflow = await self._service.activate(
-            workflow=workflow, organization_id=project.organization_id, actor_id=ctx.user_id
+            workflow=workflow,
+            organization_id=project.organization_id,
+            actor_id=ctx.user_id,
         )
         version = await self._service.get_active_version(workflow)
         return _to_read(workflow, version)
@@ -176,7 +187,9 @@ class WorkflowController:
         )
         require(role, Permission.WORKFLOW_ACTIVATE, scopes=ctx.scopes)
         workflow = await self._service.deactivate(
-            workflow=workflow, organization_id=project.organization_id, actor_id=ctx.user_id
+            workflow=workflow,
+            organization_id=project.organization_id,
+            actor_id=ctx.user_id,
         )
         version = await self._service.get_active_version(workflow)
         return _to_read(workflow, version)

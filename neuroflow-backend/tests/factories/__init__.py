@@ -15,6 +15,7 @@ from app.core.security import create_access_token, hash_password
 from app.modules.organizations.models import Organization, OrganizationMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User
+from app.modules.workflows.models import Workflow, WorkflowVersion
 
 TEST_PASSWORD = "TestPass123!"  # noqa: S105 -- fixture data, not a real secret
 
@@ -60,3 +61,27 @@ async def make_project(
     session.add(project)
     await session.flush()
     return project
+
+
+async def make_workflow(
+    session: AsyncSession,
+    *,
+    project_id: UUID,
+    name: str = "Test Workflow",
+    graph: dict[str, object] | None = None,
+) -> Workflow:
+    workflow = Workflow(project_id=project_id, name=name, settings={})
+    session.add(workflow)
+    await session.flush()
+    default_graph = {"nodes": [], "edges": [], "viewport": {"x": 0, "y": 0, "zoom": 1}}
+    version = WorkflowVersion(
+        workflow_id=workflow.id,
+        version=1,
+        graph=graph or default_graph,
+        checksum="test-checksum",
+    )
+    session.add(version)
+    await session.flush()
+    workflow.active_version_id = version.id
+    await session.flush()
+    return workflow

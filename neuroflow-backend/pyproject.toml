@@ -21,6 +21,10 @@ ignore = [
 # design doc (docs/08-backend-architecture.md #8.6) names it explicitly.
 "app/core/types.py" = ["A005"]
 "app/core/logging.py" = ["A005"]
+# The node's descriptor name is "Code" (docs/13-node-catalog-and-sdk.md
+# #13.5); it is never imported except as app.nodes.code, so there is no
+# real shadowing risk with stdlib `code`.
+"app/nodes/code.py" = ["A005"]
 # FastAPI's lifespan contract requires the `app` parameter even when unused.
 "app/main.py" = ["ARG001"]
 # arq's on_startup/on_shutdown callback contract requires `ctx` even when unused.

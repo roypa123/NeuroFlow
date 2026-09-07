@@ -3,6 +3,7 @@ docs/13-node-catalog-and-sdk.md #13.5 and docs/06-canvas-and-editor.md #6.5
 for the true/false branch labels this descriptor's `outputs` drive."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput
@@ -13,20 +14,21 @@ from app.modules.nodes.descriptors import (
     PropertyOption,
 )
 
-_OPERATORS = {
-    "equals": lambda a, b: a == b,
-    "notEquals": lambda a, b: a != b,
-    "contains": lambda a, b: b in a if isinstance(a, str | list) else False,
-    "greaterThan": lambda a, b: _coerce_number(a) > _coerce_number(b),
-    "lessThan": lambda a, b: _coerce_number(a) < _coerce_number(b),
-}
-
 
 def _coerce_number(value: Any) -> float:
     try:
         return float(value)
     except (TypeError, ValueError):
         return float("nan")
+
+
+_OPERATORS: dict[str, Callable[[Any, Any], bool]] = {
+    "equals": lambda a, b: bool(a == b),
+    "notEquals": lambda a, b: bool(a != b),
+    "contains": lambda a, b: b in a if isinstance(a, str | list) else False,
+    "greaterThan": lambda a, b: _coerce_number(a) > _coerce_number(b),
+    "lessThan": lambda a, b: _coerce_number(a) < _coerce_number(b),
+}
 
 
 class IfNode(BaseNode):
@@ -40,12 +42,19 @@ class IfNode(BaseNode):
         icon="split",
         color="cat-flow",
         aliases=["condition", "branch", "switch"],
-        subtitle="={{ $parameter.value1 }} {{ $parameter.operator }} {{ $parameter.value2 }}",
+        subtitle=(
+            "={{ $parameter.value1 }} {{ $parameter.operator }} {{ $parameter.value2 }}"
+        ),
         inputs=[PortSpec(type="main")],
-        outputs=[PortSpec(type="main", label="true"), PortSpec(type="main", label="false")],
+        outputs=[
+            PortSpec(type="main", label="true"),
+            PortSpec(type="main", label="false"),
+        ],
         idempotent=True,
         properties=[
-            NodeProperty(name="value1", display_name="Value 1", type="string", required=True),
+            NodeProperty(
+                name="value1", display_name="Value 1", type="string", required=True
+            ),
             NodeProperty(
                 name="operator",
                 display_name="Operator",
@@ -59,7 +68,9 @@ class IfNode(BaseNode):
                     PropertyOption(label="Less Than", value="lessThan"),
                 ],
             ),
-            NodeProperty(name="value2", display_name="Value 2", type="string", required=True),
+            NodeProperty(
+                name="value2", display_name="Value 2", type="string", required=True
+            ),
         ],
     )
 

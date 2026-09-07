@@ -52,9 +52,13 @@ async def create_workflow(
     return await controller.create(ctx, payload)
 
 
-@router.post("/import", response_model=WorkflowRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/import", response_model=WorkflowRead, status_code=status.HTTP_201_CREATED
+)
 async def import_workflow(
-    payload: WorkflowImportRequest, ctx: RequestContextDep, controller: WorkflowControllerDep
+    payload: WorkflowImportRequest,
+    ctx: RequestContextDep,
+    controller: WorkflowControllerDep,
 ) -> WorkflowRead:
     return await controller.import_workflow(ctx, payload)
 
@@ -98,7 +102,9 @@ async def deactivate_workflow(
 
 
 @router.post(
-    "/{workflow_id}/duplicate", response_model=WorkflowRead, status_code=status.HTTP_201_CREATED
+    "/{workflow_id}/duplicate",
+    response_model=WorkflowRead,
+    status_code=status.HTTP_201_CREATED,
 )
 async def duplicate_workflow(
     workflow_id: UUID,

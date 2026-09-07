@@ -74,7 +74,10 @@ class HttpRequestNode(BaseNode):
                 display_options=DisplayOptions(show={"sendBody": [True]}),
             ),
             NodeProperty(
-                name="timeout", display_name="Timeout (ms)", type="number", default=30000
+                name="timeout",
+                display_name="Timeout (ms)",
+                type="number",
+                default=30000,
             ),
         ],
     )

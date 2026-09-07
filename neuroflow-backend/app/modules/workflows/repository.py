@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select, tuple_
+from sqlalchemy import func, literal, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.workflows.models import Workflow, WorkflowVersion
@@ -60,14 +60,26 @@ class WorkflowRepository:
         if is_active is not None:
             stmt = stmt.where(Workflow.is_active == is_active)
         if cursor is not None:
+            cursor_created_at, cursor_id = cursor
             stmt = stmt.where(
-                tuple_(Workflow.created_at, Workflow.id) < tuple_(*cursor)
+                tuple_(Workflow.created_at, Workflow.id)
+                < tuple_(literal(cursor_created_at), literal(cursor_id))
             )
         stmt = stmt.order_by(Workflow.created_at.desc(), Workflow.id.desc()).limit(
             limit + 1
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
+
+    async def _flush_and_refresh(self, workflow: Workflow) -> None:
+        """`updated_at` has `onupdate=func.now()`; without eager_defaults,
+        SQLAlchemy's async ORM only marks it expired after a flush, and a
+        later plain attribute read (e.g. building the response schema)
+        raises MissingGreenlet trying to lazily refresh it outside an
+        awaitable context. Refreshing explicitly, still inside this
+        `async def`, is the one place that read can safely happen."""
+        await self._session.flush()
+        await self._session.refresh(workflow)
 
     async def update(
         self,
@@ -83,17 +95,21 @@ class WorkflowRepository:
             workflow.description = description
         if settings is not None:
             workflow.settings = settings
+        await self._flush_and_refresh(workflow)
 
     async def set_active_version(
         self, workflow: Workflow, version_id: UUID | None
     ) -> None:
         workflow.active_version_id = version_id
+        await self._flush_and_refresh(workflow)
 
     async def set_active(self, workflow: Workflow, *, is_active: bool) -> None:
         workflow.is_active = is_active
+        await self._flush_and_refresh(workflow)
 
     async def soft_delete(self, workflow: Workflow, *, at: datetime) -> None:
         workflow.deleted_at = at
+        await self._session.flush()
 
 
 class WorkflowVersionRepository:
@@ -158,14 +174,6 @@ class WorkflowVersionRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def next_version_number(self, workflow_id: UUID) -> int:
-        stmt = select(func.max(WorkflowVersion.version)).where(
-            WorkflowVersion.workflow_id == workflow_id
-        )
-        result = await self._session.execute(stmt)
-        current = result.scalar_one_or_none()
-        return (current or 0) + 1
-
     async def get_latest_version_numbers(
         self, workflow_ids: list[UUID]
     ) -> dict[UUID, int]:
@@ -180,4 +188,4 @@ class WorkflowVersionRepository:
             .group_by(WorkflowVersion.workflow_id)
         )
         result = await self._session.execute(stmt)
-        return dict(result.all())
+        return dict(result.tuples().all())

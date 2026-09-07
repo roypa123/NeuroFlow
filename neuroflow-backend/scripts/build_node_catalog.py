@@ -52,7 +52,10 @@ def generate_catalog_json(registry: NodeRegistry) -> str:
 def main() -> None:
     registry = build_registry()
     output = generate_catalog_json(registry)
-    catalog_path = Path(__file__).resolve().parent.parent / "app/modules/nodes/catalog.generated.json"
+    catalog_path = (
+        Path(__file__).resolve().parent.parent
+        / "app/modules/nodes/catalog.generated.json"
+    )
     catalog_path.write_text(output, encoding="utf-8")
     print(f"Wrote {len(registry.all_descriptors())} node type(s) to {catalog_path}")
 

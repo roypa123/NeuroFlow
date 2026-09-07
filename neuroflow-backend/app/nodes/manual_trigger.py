@@ -15,7 +15,7 @@ class ManualTriggerNode(BaseNode):
         category="Core",
         description="Runs the workflow when you click Test in the editor.",
         icon="mouse-pointer-click",
-        color="cat-core",
+        color="cat-trigger",
         aliases=["manual", "test"],
         subtitle=None,
         inputs=[],

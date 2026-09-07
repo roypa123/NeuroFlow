@@ -13,7 +13,12 @@ from __future__ import annotations
 from typing import Any
 
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput
-from app.modules.nodes.descriptors import Item, NodeProperty, NodeTypeDescriptor, PortSpec
+from app.modules.nodes.descriptors import (
+    Item,
+    NodeProperty,
+    NodeTypeDescriptor,
+    PortSpec,
+)
 
 
 class CodeExecutionError(RuntimeError):
@@ -29,7 +34,7 @@ class CodeNode(BaseNode):
         category="Core",
         description="Run a Python expression against the input items.",
         icon="code",
-        color="cat-data",
+        color="cat-code",
         aliases=["python", "script", "function"],
         inputs=[PortSpec(type="main")],
         outputs=[PortSpec(type="main")],
@@ -56,8 +61,9 @@ class CodeNode(BaseNode):
         code = ctx.params["code"]
         items = [item.json_ for item in ctx.input_items]
         try:
+            compiled = compile(code, "<code-node>", "eval")
             result: Any = eval(  # noqa: S307 -- restricted, documented placeholder
-                compile(code, "<code-node>", "eval"), {"__builtins__": {}}, {"items": items}
+                compiled, {"__builtins__": {}}, {"items": items}
             )
         except Exception as exc:  # noqa: BLE001 -- surfaced as a node error, not a crash
             raise CodeExecutionError(str(exc)) from exc

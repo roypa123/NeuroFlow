@@ -60,6 +60,14 @@ class WorkflowService:
     ) -> tuple[Project, Role]:
         return await self._projects.get(project_id=project_id, user_id=user_id)
 
+    async def get_role_for_project(
+        self, *, project_id: UUID, user_id: UUID
+    ) -> Role:
+        _project, role = await self._get_project_and_role(
+            project_id=project_id, user_id=user_id
+        )
+        return role
+
     async def get(
         self, *, workflow_id: UUID, user_id: UUID
     ) -> tuple[Workflow, Project, Role]:
@@ -181,7 +189,9 @@ class WorkflowService:
         changes: dict[str, Any] = {}
         if name is not None and name != workflow.name:
             changes["name"] = {"from": workflow.name, "to": name}
-        settings_dict = settings.model_dump(mode="json") if settings is not None else None
+        settings_dict = (
+            settings.model_dump(mode="json") if settings is not None else None
+        )
         await self._workflows.update(
             workflow, name=name, description=description, settings=settings_dict
         )
@@ -234,7 +244,9 @@ class WorkflowService:
         self, *, workflow: Workflow, organization_id: UUID, actor_id: UUID
     ) -> Workflow:
         latest = await self._versions.get_latest(workflow.id)
-        graph = WorkflowGraph.model_validate(latest.graph) if latest else WorkflowGraph()
+        graph = (
+            WorkflowGraph.model_validate(latest.graph) if latest else WorkflowGraph()
+        )
         trigger_count = 0
         for node in graph.nodes:
             try:

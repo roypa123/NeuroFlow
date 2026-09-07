@@ -10,14 +10,19 @@ export interface ApiErrorDetail {
 export interface ApiErrorBody {
   code: string
   message: string
-  details?: ApiErrorDetail[]
+  // Usually ApiErrorDetail[] (422 field errors), but some errors carry a
+  // single structured object instead -- e.g. workflow.version_conflict's
+  // { expectedVersionId, actualVersionId } (docs/11-api-design.md #11.7).
+  // Narrow with a schema at the call site rather than assuming the array
+  // shape everywhere.
+  details?: ApiErrorDetail[] | Record<string, unknown>
   requestId?: string
 }
 
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
-  readonly details?: ApiErrorDetail[]
+  readonly details?: ApiErrorDetail[] | Record<string, unknown>
   readonly requestId?: string
 
   constructor(status: number, body: ApiErrorBody) {

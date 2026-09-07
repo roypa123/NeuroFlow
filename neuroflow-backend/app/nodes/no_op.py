@@ -15,7 +15,7 @@ class NoOpNode(BaseNode):
         category="Core",
         description="Does nothing. Useful for organizing a graph visually.",
         icon="circle-dashed",
-        color="cat-core",
+        color="cat-flow",
         aliases=["noop", "passthrough", "do nothing"],
         inputs=[PortSpec(type="main")],
         outputs=[PortSpec(type="main")],
