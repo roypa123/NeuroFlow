@@ -1,2 +1,2 @@
 export { nodeTypeKeys } from './keys'
-export { useNodeTypes } from './queries'
+export { useNodeTypeDescriptor, useNodeTypes, useNodeTypesByKey } from './queries'
