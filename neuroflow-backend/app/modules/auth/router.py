@@ -2,9 +2,9 @@
 #8.1. Endpoint set mirrors docs/11-api-design.md #11.5.
 
 Not implemented yet, and structurally out of scope until they exist:
-`logout-all`, `reset-password`, `change-password`, `PATCH /me` -- and rate
-limiting on login/register/forgot-password (#11.5's table). None of the
-frontend's current auth pages call them.
+`logout-all`, `change-password`, `PATCH /me` -- and rate limiting on
+login/register/forgot-password (#11.5's table). None of the frontend's
+current auth pages call them.
 """
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from app.modules.auth.schemas import (
     LoginRequest,
     LoginResponse,
     RegisterRequest,
+    ResetPasswordRequest,
     TokenResponse,
 )
 from app.modules.users.schemas import UserRead
@@ -120,9 +121,20 @@ async def me(ctx: RequestContextDep, controller: AuthControllerDep) -> UserRead:
 
 
 @router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
-async def forgot_password(payload: ForgotPasswordRequest) -> None:
+async def forgot_password(
+    payload: ForgotPasswordRequest, controller: AuthControllerDep
+) -> None:
     # Always 202 regardless of whether the email exists -- see
     # docs/15-security-and-credentials.md #15.2 (no user enumeration).
-    # Actually sending a reset email needs outbound email infra that
-    # doesn't exist in this codebase yet; this is a structural stub.
-    del payload
+    # The reset token is created and logged, not emailed: there is no
+    # outbound email infra in this codebase yet.
+    await controller.forgot_password(email=payload.email)
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+async def reset_password(
+    payload: ResetPasswordRequest, controller: AuthControllerDep
+) -> None:
+    await controller.reset_password(
+        token=payload.token, new_password=payload.new_password
+    )

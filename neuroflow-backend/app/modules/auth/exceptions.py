@@ -15,3 +15,7 @@ class InvalidCredentialsError(UnauthorizedError):
 
 class InvalidRefreshTokenError(UnauthorizedError):
     code = "auth.invalid_refresh_token"
+
+
+class InvalidPasswordResetTokenError(UnauthorizedError):
+    code = "auth.invalid_password_reset_token"

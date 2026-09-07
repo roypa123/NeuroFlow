@@ -2,6 +2,7 @@
 and docs/10-database-schema.md #10.4."""
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -44,3 +45,20 @@ class OrganizationMember(Base, UUIDPrimaryKey, TimestampMixin):
 
     organization: Mapped[Organization] = relationship(back_populates="members")
     user: Mapped[User] = relationship(back_populates="memberships")
+
+
+class Invitation(Base, UUIDPrimaryKey, TimestampMixin):
+    __tablename__ = "invitations"
+
+    organization_id: Mapped[UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), index=True
+    )
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    role: Mapped[Role] = mapped_column(_ROLE_TYPE)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    invited_by_user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    expires_at: Mapped[datetime]
+    accepted_at: Mapped[datetime | None] = mapped_column(default=None)
+    revoked_at: Mapped[datetime | None] = mapped_column(default=None)

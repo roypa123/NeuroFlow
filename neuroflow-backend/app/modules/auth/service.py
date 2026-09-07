@@ -1,5 +1,5 @@
-"""Auth business rules: registration, credential verification, and refresh
-token issuance/rotation.
+"""Auth business rules: registration, credential verification, refresh
+token issuance/rotation, and password reset.
 
 Framework-agnostic -- raises AppError subclasses, never HTTPException, so it
 stays callable outside of a request (e.g. from the worker) even though
@@ -10,25 +10,41 @@ from __future__ import annotations
 import hashlib
 import secrets
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from app.core.config import get_settings
+from app.core.logging import get_logger
 from app.core.permissions import Role
 from app.core.security import create_access_token, hash_password, verify_password
+from app.core.uuid7 import uuid7
 from app.modules.auth.exceptions import (
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
+    InvalidPasswordResetTokenError,
     InvalidRefreshTokenError,
 )
-from app.modules.auth.repository import RefreshTokenRepository
+from app.modules.auth.repository import (
+    PasswordResetTokenRepository,
+    RefreshTokenRepository,
+)
 from app.modules.organizations.models import Organization
-from app.modules.organizations.repository import OrganizationRepository
-from app.modules.projects.repository import ProjectRepository
+from app.modules.organizations.service import OrganizationService
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 
+PASSWORD_RESET_TTL = timedelta(hours=1)
+
 Memberships = list[tuple[Organization, Role]]
+
+logger = get_logger(__name__)
+
+
+def _hash_token(token: str) -> str:
+    # SHA-256 over a randomly-generated token: the token itself already
+    # carries all the entropy, so this is a lookup digest, not a password
+    # hash -- argon2 (used for passwords) would just add pointless CPU cost.
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 @dataclass(slots=True, frozen=True)
@@ -41,25 +57,18 @@ class Session:
     refresh_token_expires_at: datetime
 
 
-def _hash_token(token: str) -> str:
-    # SHA-256 over a 48-byte random token: the token itself already carries
-    # all the entropy, so this is a lookup digest, not a password hash --
-    # argon2 (used for passwords) would just add pointless CPU cost here.
-    return hashlib.sha256(token.encode()).hexdigest()
-
-
 class AuthService:
     def __init__(
         self,
         users: UserRepository,
-        organizations: OrganizationRepository,
-        projects: ProjectRepository,
+        organizations: OrganizationService,
         refresh_tokens: RefreshTokenRepository,
+        password_reset_tokens: PasswordResetTokenRepository,
     ) -> None:
         self._users = users
         self._organizations = organizations
-        self._projects = projects
         self._refresh_tokens = refresh_tokens
+        self._password_reset_tokens = password_reset_tokens
 
     async def register(self, *, email: str, password: str, name: str) -> Session:
         if await self._users.get_by_email(email) is not None:
@@ -70,14 +79,9 @@ class AuthService:
         user = await self._users.create(
             email=email, password_hash=hash_password(password), name=name
         )
-        organization = await self._organizations.create(
-            name=f"{name}'s Organization"
+        organization = await self._organizations.create_with_owner(
+            name=f"{name}'s Organization", owner_user_id=user.id
         )
-        await self._organizations.add_member(
-            organization_id=organization.id, user_id=user.id, role=Role.OWNER
-        )
-        await self._projects.create(organization_id=organization.id, name="Personal")
-
         return await self._issue_session(user, [(organization, Role.OWNER)])
 
     async def login(self, *, email: str, password: str) -> Session:
@@ -87,35 +91,47 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             raise InvalidCredentialsError("Invalid email or password")
 
-        organizations = await self._memberships_for(user.id)
+        organizations = await self._organizations.list_for_user(user.id)
         await self._users.touch_last_login(user, at=datetime.now(UTC))
         return await self._issue_session(user, organizations)
 
     async def refresh(self, *, refresh_token: str) -> Session:
         now = datetime.now(UTC)
-        stored = await self._refresh_tokens.get_active_by_hash(
-            _hash_token(refresh_token)
-        )
+        stored = await self._refresh_tokens.get_by_hash(_hash_token(refresh_token))
         if stored is None or stored.expires_at < now:
+            raise InvalidRefreshTokenError("Refresh token is invalid or expired")
+
+        if stored.revoked_at is not None:
+            # This exact token was already rotated away once. Presenting it
+            # again means a copy of it leaked and is being replayed -- we
+            # can no longer tell which caller is the legitimate one, so the
+            # whole rotation family is killed and everyone must re-login.
+            #
+            # The explicit commit (see RefreshTokenRepository.commit's
+            # docstring) matters here specifically: this branch is about to
+            # raise, and get_session()'s rollback-on-exception would
+            # otherwise silently undo the very revocation that makes this
+            # a real security control rather than a no-op.
+            await self._refresh_tokens.revoke_family(stored.family_id, at=now)
+            await self._refresh_tokens.commit()
+            logger.warning(
+                "auth.refresh_token_reuse_detected", family_id=str(stored.family_id)
+            )
             raise InvalidRefreshTokenError("Refresh token is invalid or expired")
 
         user = await self._users.get_by_id(stored.user_id)
         if user is None:
             raise InvalidRefreshTokenError("Refresh token is invalid or expired")
 
-        # Rotate on every use: the presented token becomes single-use, so a
-        # stolen-and-replayed cookie is detected the moment the legitimate
-        # client refreshes next (it will fail, since its token was just
-        # revoked here).
         await self._refresh_tokens.revoke(stored, at=now)
-        organizations = await self._memberships_for(user.id)
-        return await self._issue_session(user, organizations)
+        organizations = await self._organizations.list_for_user(user.id)
+        return await self._issue_session(
+            user, organizations, family_id=stored.family_id
+        )
 
     async def logout(self, *, refresh_token: str) -> None:
-        stored = await self._refresh_tokens.get_active_by_hash(
-            _hash_token(refresh_token)
-        )
-        if stored is not None:
+        stored = await self._refresh_tokens.get_by_hash(_hash_token(refresh_token))
+        if stored is not None and stored.revoked_at is None:
             await self._refresh_tokens.revoke(stored, at=datetime.now(UTC))
 
     async def get_current_user(
@@ -124,13 +140,45 @@ class AuthService:
         user = await self._users.get_by_id(user_id)
         if user is None:
             return None
-        return user, await self._memberships_for(user_id)
+        return user, await self._organizations.list_for_user(user_id)
 
-    async def _memberships_for(self, user_id: UUID) -> Memberships:
-        memberships = await self._organizations.list_memberships_for_user(user_id)
-        return [(org, member.role) for member, org in memberships]
+    async def request_password_reset(self, *, email: str) -> None:
+        user = await self._users.get_by_email(email)
+        if user is None:
+            return  # always looks like success -- no user enumeration
 
-    async def _issue_session(self, user: User, organizations: Memberships) -> Session:
+        token = secrets.token_urlsafe(32)
+        await self._password_reset_tokens.create(
+            user_id=user.id,
+            token_hash=_hash_token(token),
+            expires_at=datetime.now(UTC) + PASSWORD_RESET_TTL,
+        )
+        # No outbound email infra exists in this codebase yet -- logging the
+        # token is the same limitation the endpoint already had as a stub.
+        logger.info("auth.password_reset_requested", user_id=str(user.id))
+
+    async def reset_password(self, *, token: str, new_password: str) -> None:
+        now = datetime.now(UTC)
+        stored = await self._password_reset_tokens.get_active_by_hash(
+            _hash_token(token)
+        )
+        if stored is None or stored.expires_at < now:
+            raise InvalidPasswordResetTokenError("Reset token is invalid or expired")
+
+        user = await self._users.get_by_id(stored.user_id)
+        if user is None:
+            raise InvalidPasswordResetTokenError("Reset token is invalid or expired")
+
+        await self._users.set_password(user, password_hash=hash_password(new_password))
+        await self._password_reset_tokens.mark_used(stored, at=now)
+        # Resetting the password ends every existing session -- if the
+        # reset was needed because credentials leaked, a session started
+        # with the old password must not survive it.
+        await self._refresh_tokens.revoke_all_for_user(user.id, at=now)
+
+    async def _issue_session(
+        self, user: User, organizations: Memberships, *, family_id: UUID | None = None
+    ) -> Session:
         settings = get_settings()
         primary_org, primary_role = organizations[0] if organizations else (None, None)
 
@@ -145,6 +193,7 @@ class AuthService:
         await self._refresh_tokens.create(
             user_id=user.id,
             token_hash=_hash_token(refresh_token),
+            family_id=family_id or uuid7(),
             expires_at=expires_at,
         )
         return Session(

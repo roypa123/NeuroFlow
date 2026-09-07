@@ -24,6 +24,11 @@ class ForgotPasswordRequest(CamelModel):
     email: EmailStr
 
 
+class ResetPasswordRequest(CamelModel):
+    token: str
+    new_password: str = Field(min_length=8, max_length=200)
+
+
 class TokenResponse(CamelModel):
     access_token: str
     expires_in: int

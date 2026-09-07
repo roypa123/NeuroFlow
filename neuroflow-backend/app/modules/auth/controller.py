@@ -58,6 +58,12 @@ class AuthController:
     async def logout(self, *, refresh_token: str) -> None:
         await self._service.logout(refresh_token=refresh_token)
 
+    async def forgot_password(self, *, email: str) -> None:
+        await self._service.request_password_reset(email=email)
+
+    async def reset_password(self, *, token: str, new_password: str) -> None:
+        await self._service.reset_password(token=token, new_password=new_password)
+
     async def me(self, user_id: UUID) -> UserRead:
         result = await self._service.get_current_user(user_id)
         if result is None:

@@ -31,3 +31,6 @@ class UserRepository:
 
     async def touch_last_login(self, user: User, *, at: datetime) -> None:
         user.last_login_at = at
+
+    async def set_password(self, user: User, *, password_hash: str) -> None:
+        user.password_hash = password_hash

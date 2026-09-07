@@ -7,19 +7,23 @@ from fastapi import Depends
 
 from app.api.deps import SessionDep
 from app.modules.auth.controller import AuthController
-from app.modules.auth.repository import RefreshTokenRepository
+from app.modules.auth.repository import (
+    PasswordResetTokenRepository,
+    RefreshTokenRepository,
+)
 from app.modules.auth.service import AuthService
-from app.modules.organizations.repository import OrganizationRepository
-from app.modules.projects.repository import ProjectRepository
+from app.modules.organizations.dependencies import OrganizationServiceDep
 from app.modules.users.repository import UserRepository
 
 
-def get_auth_service(session: SessionDep) -> AuthService:
+def get_auth_service(
+    session: SessionDep, organizations: OrganizationServiceDep
+) -> AuthService:
     return AuthService(
         users=UserRepository(session),
-        organizations=OrganizationRepository(session),
-        projects=ProjectRepository(session),
+        organizations=organizations,
         refresh_tokens=RefreshTokenRepository(session),
+        password_reset_tokens=PasswordResetTokenRepository(session),
     )
 
 
