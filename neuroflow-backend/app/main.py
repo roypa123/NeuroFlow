@@ -6,9 +6,11 @@ boundary rules in docs/03-system-architecture.md #3.9.
 """
 from __future__ import annotations
 
+import asyncio
 import sys
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Coroutine
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,6 +31,15 @@ from app.core.middleware import (
 from app.core.redis import get_redis
 
 logger = get_logger(__name__)
+
+# A hard timeout per readiness check, run concurrently, is what actually
+# makes /health/ready a *readiness* probe rather than a liveness probe with
+# extra steps: an unreachable-but-not-actively-refusing dependency (a
+# firewall drop, a half-open connection) can otherwise take the OS/driver's
+# full connect timeout -- 10s+ per dependency, and additive if checked
+# sequentially -- defeating orchestrators' short health-check windows
+# (Kubernetes/Docker often default to 1-5s).
+HEALTH_CHECK_TIMEOUT_SECONDS = 3.0
 
 
 def _verify_production_secrets(settings: Settings) -> None:
@@ -101,22 +112,28 @@ def create_app() -> FastAPI:
         docs/16-observability.md #16.7."""
         return {"status": "ok"}
 
+    async def _check_database() -> str:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return "ok"
+
+    async def _check_redis() -> str:
+        await get_redis().ping()
+        return "ok"
+
+    async def _timed(coro: Coroutine[Any, Any, str]) -> str:
+        try:
+            return await asyncio.wait_for(coro, timeout=HEALTH_CHECK_TIMEOUT_SECONDS)
+        except Exception:  # noqa: BLE001 - readiness must never raise
+            return "error"
+
     @app.get("/health/ready", tags=["health"])
     async def health_ready() -> JSONResponse:
         """Readiness: verifies Postgres and Redis are reachable."""
-        checks = {"database": "unknown", "redis": "unknown"}
-        try:
-            async with engine.connect() as conn:
-                await conn.execute(text("SELECT 1"))
-            checks["database"] = "ok"
-        except Exception:  # noqa: BLE001 - readiness must never raise
-            checks["database"] = "error"
-        try:
-            await get_redis().ping()
-            checks["redis"] = "ok"
-        except Exception:  # noqa: BLE001
-            checks["redis"] = "error"
-
+        database_status, redis_status = await asyncio.gather(
+            _timed(_check_database()), _timed(_check_redis())
+        )
+        checks = {"database": database_status, "redis": redis_status}
         status_code = 200 if all(v == "ok" for v in checks.values()) else 503
         return JSONResponse(status_code=status_code, content=checks)
 

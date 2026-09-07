@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import signal
+import sys
 import uuid
 
 from app.core.logging import configure_logging, get_logger
@@ -35,8 +36,14 @@ async def run() -> None:
 
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, stop.set)
+    if sys.platform != "win32":
+        # add_signal_handler is Unix-only in asyncio -- it raises
+        # NotImplementedError on every Windows event loop, selector or
+        # proactor. The deployed target is always Linux/Docker; on Windows,
+        # local dev falls back to KeyboardInterrupt for Ctrl+C, which
+        # asyncio.run() already handles, just less gracefully.
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, stop.set)
 
     while not stop.is_set():
         # Only the replica holding the lock ticks -- see the docstring above

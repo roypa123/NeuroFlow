@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -87,7 +88,14 @@ async def run_async_migrations() -> None:
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
 
-    asyncio.run(run_async_migrations())
+    # psycopg's async mode cannot run under Windows' default
+    # ProactorEventLoop -- it requires a selector-based loop. This only
+    # bites local Windows development; every deployed target (Docker,
+    # Linux) already defaults to a selector loop, so this is a no-op there.
+    if sys.platform == "win32":
+        asyncio.run(run_async_migrations(), loop_factory=asyncio.SelectorEventLoop)
+    else:
+        asyncio.run(run_async_migrations())
 
 
 if context.is_offline_mode():

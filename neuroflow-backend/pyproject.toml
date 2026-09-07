@@ -38,6 +38,13 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# One event loop for the whole session: app.core.database's `engine` is a
+# module-level singleton (built once at import time), and an async
+# connection pool bound to one event loop cannot be reused from another --
+# per-function loops (pytest-asyncio's default) silently hang rather than
+# erroring against it. See docs/17-testing-strategy.md #17.4.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 
 [tool.coverage.run]
