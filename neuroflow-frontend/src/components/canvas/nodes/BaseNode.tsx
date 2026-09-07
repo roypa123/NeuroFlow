@@ -1,3 +1,8 @@
+/* eslint-disable react-hooks/static-components --
+   Descriptor-driven icon-by-name lookup (docs/13-node-catalog-and-sdk.md
+   #13.2) resolves a stable reference into lucide's own icon map; the
+   compiler's heuristic can't distinguish that from a component defined
+   inline, but nothing is actually created per render here. */
 import { useMemo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { cn } from 'cn'

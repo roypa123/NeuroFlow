@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Any, Generic, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel
+from app.core.schema import CamelModel
 
 T = TypeVar("T")
 
@@ -50,13 +50,13 @@ def clamp_limit(limit: int | None) -> int:
     return max(1, min(limit, MAX_LIMIT))
 
 
-class KeysetPage(BaseModel, Generic[T]):
+class KeysetPage(CamelModel, Generic[T]):
     items: list[T]
     next_cursor: str | None = None
     has_more: bool = False
 
 
-class OffsetPage(BaseModel, Generic[T]):
+class OffsetPage(CamelModel, Generic[T]):
     items: list[T]
     total: int
     page: int
