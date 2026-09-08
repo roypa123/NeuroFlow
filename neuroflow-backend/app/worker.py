@@ -24,6 +24,22 @@ from app.engine.registry import build_runtime_registry
 from app.engine.run_execution import run_execution
 from app.engine.sweeper import recovery_sweep, watchdog_sweep
 
+# The worker's own import chain (engine -> executions/workflows
+# repositories) never touches app.modules.users/organizations/audit/auth,
+# but Execution/Workflow declare string ForeignKeys into their tables
+# ("users.id", etc.). SQLAlchemy only resolves those lazily, against
+# whichever models have actually been imported into Base.metadata in this
+# process -- so, exactly like alembic/env.py, every model module must be
+# imported here explicitly, or the first real query raises
+# NoReferencedTableError. The API process gets this incidentally (auth's
+# router pulls users.models in transitively); the worker does not.
+from app.modules.audit import models as _audit_models  # noqa: F401
+from app.modules.auth import models as _auth_models  # noqa: F401
+from app.modules.organizations import models as _organizations_models  # noqa: F401
+from app.modules.projects import models as _projects_models  # noqa: F401
+from app.modules.users import models as _users_models  # noqa: F401
+from app.modules.workflows import models as _workflows_models  # noqa: F401
+
 logger = get_logger(__name__)
 
 

@@ -16,6 +16,12 @@ export const graphNodeSchema = z.object({
   name: z.string().nullable().default(null),
   position: positionSchema,
   parameters: z.record(z.string(), z.unknown()).default({}),
+  // Execution behavior (docs/12-execution-engine.md #12.4) -- additive
+  // fields the backend defaults too, so a graph saved before Phase 4
+  // round-trips unchanged.
+  onError: z.enum(['stop', 'continue', 'continueErrorOutput']).default('stop'),
+  maxTries: z.number().default(3),
+  waitBetweenTriesMs: z.number().default(1000),
 })
 export type GraphNode = z.infer<typeof graphNodeSchema>
 

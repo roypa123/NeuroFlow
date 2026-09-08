@@ -196,3 +196,11 @@
     @apply font-sans;
     }
 }
+
+/* Running-edge dash flow -- docs/06-canvas-and-editor.md #6.11: "the
+   single most effective 'the system is alive' cue in the whole UI." */
+@keyframes neuroflow-edge-flow {
+  to {
+    stroke-dashoffset: -10;
+  }
+}

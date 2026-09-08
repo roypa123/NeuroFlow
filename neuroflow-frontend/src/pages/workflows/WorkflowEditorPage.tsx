@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { ReactFlowProvider } from '@xyflow/react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Loader2, Plus, Power, Redo2, Save, Undo2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Play, Plus, Power, Redo2, Save, Undo2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -24,6 +24,7 @@ import { isApiError } from '@/api'
 import { FlowCanvas } from '@/components/canvas/FlowCanvas'
 import { NodePicker } from '@/components/canvas/NodePicker'
 import { Inspector } from '@/components/canvas/inspector'
+import { useExecuteWorkflow, useExecutionStream } from '@/endpoints/executions'
 import { useNodeTypesByKey } from '@/endpoints/node-types'
 import {
   useActivateWorkflow,
@@ -34,6 +35,7 @@ import {
 } from '@/endpoints/workflows'
 import { fetchWorkflow } from '@/endpoints/workflows/requests'
 import { useCanvasStore } from '@/store/canvas-store'
+import { useExecutionStore } from '@/store/execution-store'
 import { useUiStore } from '@/store/ui-store'
 import type { VersionConflictDetails } from '@/types/workflows'
 import { paths } from '@/routing/paths'
@@ -46,6 +48,14 @@ function EditorTopbar({ workflowId }: { workflowId: string }) {
   const updateWorkflow = useUpdateWorkflow(workflowId)
   const activateWorkflow = useActivateWorkflow(workflowId)
   const deactivateWorkflow = useDeactivateWorkflow(workflowId)
+  const executeWorkflow = useExecuteWorkflow(workflowId)
+
+  const runStatus = useExecutionStore((s) => s.status)
+  const activeExecutionId = useExecutionStore((s) => s.executionId)
+  const startRun = useExecutionStore((s) => s.startRun)
+  const applyRunEvent = useExecutionStore((s) => s.applyEvent)
+  const resetRun = useExecutionStore((s) => s.reset)
+  useExecutionStream(activeExecutionId, applyRunEvent)
 
   const isDirty = useCanvasStore((s) => s.isDirty)
   const toGraph = useCanvasStore((s) => s.toGraph)
@@ -69,6 +79,13 @@ function EditorTopbar({ workflowId }: { workflowId: string }) {
   if (workflow && workflow.id !== syncedWorkflowId) {
     setSyncedWorkflowId(workflow.id)
     setName(workflow.name)
+    resetRun()
+  }
+
+  async function run() {
+    if (!workflow) return
+    const { executionId } = await executeWorkflow.mutateAsync()
+    startRun(executionId)
   }
 
   async function save(overrideBaseVersionId?: string) {
@@ -104,12 +121,15 @@ function EditorTopbar({ workflowId }: { workflowId: string }) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
         void save()
+      } else if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault()
+        if (runStatus !== 'running') void run()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, baseVersionId, workflow])
+  }, [name, baseVersionId, workflow, runStatus])
 
   if (!workflow) return null
 
@@ -156,6 +176,33 @@ function EditorTopbar({ workflowId }: { workflowId: string }) {
         )}
         Save
       </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => void run()}
+        disabled={executeWorkflow.isPending || runStatus === 'running'}
+        title="Run (Ctrl/Cmd+Enter)"
+      >
+        {runStatus === 'running' ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Play className="size-4" />
+        )}
+        {runStatus === 'running' ? 'Running' : 'Run'}
+      </Button>
+      {activeExecutionId && runStatus !== 'idle' && (
+        <span
+          className={
+            runStatus === 'error'
+              ? 'text-xs text-destructive'
+              : runStatus === 'success'
+                ? 'text-xs text-success'
+                : 'text-xs text-muted-foreground'
+          }
+        >
+          {runStatus === 'running' ? 'Running...' : `Last run: ${runStatus}`}
+        </span>
+      )}
 
       <NodePicker
         open={pickerOpen}

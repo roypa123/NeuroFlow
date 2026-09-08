@@ -139,6 +139,11 @@ def _eval(node: Node, roots: dict[str, Any], budget: _Budget, expression: str) -
 def _apply_binary(op: str, left: Any, right: Any, expression: str) -> Any:
     try:
         if op == "+":
+            # JS-flavored: `+` with either side a string concatenates
+            # (stringifying the other side) rather than raising, matching
+            # docs/12-execution-engine.md #12.6's expression examples.
+            if isinstance(left, str) or isinstance(right, str):
+                return _stringify(left) + _stringify(right)
             return left + right
         if op == "-":
             return left - right

@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Index, Integer, String, text
+from sqlalchemy import ForeignKey, Index, Integer, String, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -64,7 +64,11 @@ class Execution(Base, UUIDPrimaryKey):
     created_by: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), default=None
     )
-    created_at: Mapped[datetime] = mapped_column(index=True)
+    # The repository always supplies this explicitly (enqueue time), but a
+    # server_default is a real safety net, not decoration -- see
+    # ExecutionData.created_at's comment for why one being missing here is
+    # a live bug, not a style nit.
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now(), index=True)
 
 
 class ExecutionData(Base, UUIDPrimaryKey):
@@ -79,7 +83,11 @@ class ExecutionData(Base, UUIDPrimaryKey):
     size_bytes: Mapped[int] = mapped_column(Integer)
     item_count: Mapped[int] = mapped_column(Integer)
     truncated: Mapped[bool] = mapped_column(default=False)
-    created_at: Mapped[datetime] = mapped_column()
+    # Found via live E2E verification: nothing ever set this explicitly
+    # (unlike Execution.created_at/NodeExecution.started_at), so every
+    # insert violated the NOT NULL constraint until this server_default
+    # was added.
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
 class NodeExecution(Base, UUIDPrimaryKey):

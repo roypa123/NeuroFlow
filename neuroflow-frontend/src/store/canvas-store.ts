@@ -41,6 +41,13 @@ export interface NodeData extends Record<string, unknown> {
   label: string | null
   parameters: Record<string, unknown>
   status: 'idle' | 'running' | 'success' | 'error' | 'waiting' | 'disabled'
+  // No inspector UI yet (docs/12-execution-engine.md #12.4's onError/retry
+  // config is a later polish item) -- carried through load/save so a
+  // graph that already has non-default values round-trips exactly rather
+  // than silently resetting them, per the Phase 3 exit criterion.
+  onError: 'stop' | 'continue' | 'continueErrorOutput'
+  maxTries: number
+  waitBetweenTriesMs: number
 }
 
 export type FlowNode = Node<NodeData>
@@ -135,6 +142,9 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
         label: n.name,
         parameters: n.parameters,
         status: 'idle',
+        onError: n.onError,
+        maxTries: n.maxTries,
+        waitBetweenTriesMs: n.waitBetweenTriesMs,
       },
     }))
     const edges: FlowEdge[] = graph.edges.map((e) => ({
@@ -168,6 +178,9 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
         name: n.data.label,
         position: n.position,
         parameters: n.data.parameters,
+        onError: n.data.onError,
+        maxTries: n.data.maxTries,
+        waitBetweenTriesMs: n.data.waitBetweenTriesMs,
       })),
       edges: edges.map((e) => ({
         id: e.id,
@@ -251,6 +264,9 @@ export const useCanvasStore = create<CanvasState>()((set, get) => ({
         label: null,
         parameters: defaultParameters(descriptor),
         status: 'idle',
+        onError: 'stop',
+        maxTries: 3,
+        waitBetweenTriesMs: 1000,
       },
     }
     set((state) => {

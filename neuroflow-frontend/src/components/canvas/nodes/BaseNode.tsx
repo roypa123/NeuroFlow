@@ -8,21 +8,24 @@ import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { cn } from 'cn'
 import { useNodeTypeDescriptor } from '@/endpoints/node-types'
 import type { FlowNode } from '@/store/canvas-store'
+import { useNodeRunSummary } from '@/store/execution-store'
+import { useUiStore } from '@/store/ui-store'
 import { iconForName } from '../icon-lookup'
 
 // Shared chrome for every node kind -- docs/06-canvas-and-editor.md #6.4.
 // 240x76px fixed size, icon tinted by category colour, status ring on the
 // left border, subtitle is a cheap static resolution of
-// `{{ $parameter.x }}` against current params (no live expression
-// evaluator until Phase 4 -- docs/12-execution-engine.md #12.6).
+// `{{ $parameter.x }}` against current params. The status ring and run
+// summary strip come from execution-store (live SSE state), not
+// canvas-store -- a node's "how did the last run go" is per-run session
+// state, not part of the saved graph.
 
 const STATUS_RING: Record<string, string> = {
   idle: 'border-l-border',
   running: 'border-l-primary animate-pulse',
   success: 'border-l-success',
   error: 'border-l-destructive',
-  waiting: 'border-l-warning',
-  disabled: 'border-l-muted-foreground opacity-60',
+  skipped: 'border-l-muted-foreground opacity-60',
 }
 
 function resolveSubtitle(
@@ -46,6 +49,7 @@ function outputHandleTop(index: number, total: number): string {
 }
 
 export function NodeChrome({
+  id,
   data,
   selected,
   shape,
@@ -56,17 +60,20 @@ export function NodeChrome({
   const subtitle = resolveSubtitle(descriptor?.subtitle, data.parameters)
   const outputs = descriptor?.outputs ?? [{ type: 'main', label: null }]
   const hasInput = (descriptor?.inputs.length ?? 1) > 0
+  const run = useNodeRunSummary(id)
+  const status = run?.status ?? 'idle'
+  const setActiveInspectorTab = useUiStore((s) => s.setActiveInspectorTab)
 
   return (
     <div
       role="button"
       tabIndex={0}
-      aria-label={`${title}, ${descriptor?.name ?? data.nodeTypeKey}, ${data.status}`}
+      aria-label={`${title}, ${descriptor?.name ?? data.nodeTypeKey}, ${status}`}
       className={cn(
         'flex h-[76px] w-[240px] flex-col justify-center gap-1 border border-border border-l-[3px]',
         'bg-card px-3 py-2 shadow-sm transition-shadow',
         shape === 'trigger' ? 'rounded-l-full rounded-r-md' : 'rounded-md',
-        STATUS_RING[data.status],
+        STATUS_RING[status],
         selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
       )}
     >
@@ -92,10 +99,25 @@ export function NodeChrome({
           <p className="truncate text-sm font-medium" title={title}>
             {title}
           </p>
-          {subtitle && (
-            <p className="truncate text-xs text-muted-foreground" title={subtitle}>
-              {subtitle}
-            </p>
+          {run && (run.status === 'success' || run.status === 'error') ? (
+            <button
+              type="button"
+              className="nodrag truncate text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
+              onClick={(event) => {
+                event.stopPropagation()
+                setActiveInspectorTab('output')
+              }}
+            >
+              {run.status === 'success' ? '✓' : '⚠'}{' '}
+              {run.durationMs != null ? `${(run.durationMs / 1000).toFixed(1)}s` : ''}
+              {run.itemsOut != null ? ` · ${run.itemsOut} items` : ''}
+            </button>
+          ) : (
+            subtitle && (
+              <p className="truncate text-xs text-muted-foreground" title={subtitle}>
+                {subtitle}
+              </p>
+            )
           )}
         </div>
       </div>

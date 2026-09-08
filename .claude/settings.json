@@ -4,7 +4,12 @@
       "Bash(npx vitest *)",
       "Bash(echo \"exit:$?\")",
       "Bash(.venv/Scripts/python.exe -c ' *)",
-      "Bash(.venv/Scripts/python.exe -m alembic revision --autogenerate -m \"add executions node_executions execution_data\")"
+      "Bash(.venv/Scripts/python.exe -m alembic revision --autogenerate -m \"add executions node_executions execution_data\")",
+      "Bash(PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe -c ' *)",
+      "Bash(tail -30 \"/c/Users/Server/AppData/Local/Temp/claude/e--ROY2-neuroflow/de4d544c-1d1e-4bcf-a097-d63369fd8da4/scratchpad/worker3.log\")",
+      "Read(//c/Users/Server/AppData/Local/Temp/claude/e--ROY2-neuroflow/de4d544c-1d1e-4bcf-a097-d63369fd8da4/scratchpad/**)",
+      "Bash(.venv/Scripts/python.exe -m alembic downgrade -1)",
+      "Bash(taskkill //PID 13812 //F)"
     ]
   }
 }

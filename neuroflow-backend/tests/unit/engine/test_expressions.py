@@ -63,6 +63,16 @@ def test_items_length_and_indexing() -> None:
     assert resolve_expression_string("={{ $item(1).json.a }}", scope) == 2
 
 
+def test_numeric_addition_stays_numeric() -> None:
+    assert resolve_expression_string("={{ 1 + 2 }}", make_scope()) == 3
+
+
+def test_plus_with_a_string_operand_concatenates_js_style() -> None:
+    scope = make_scope()
+    result = resolve_expression_string("={{ 'total-' + $json.total }}", scope)
+    assert result == "total-150"
+
+
 def test_now_format() -> None:
     result = resolve_expression_string("={{ $now.format('YYYY-MM-DD') }}", make_scope())
     assert result == "2026-01-02"

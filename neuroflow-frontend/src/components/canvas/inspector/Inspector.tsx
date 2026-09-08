@@ -5,17 +5,19 @@ import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useExecution, useNodeData } from '@/endpoints/executions'
 import { useNodeTypeDescriptor } from '@/endpoints/node-types'
 import { useUiStore } from '@/store/ui-store'
 import { useCanvasStore } from '@/store/canvas-store'
+import { useExecutionStore, useNodeRunSummary } from '@/store/execution-store'
+import { DataView } from './DataView'
 import { evaluateDisplayOptions, buildParameterSchema } from './schema'
 import { FieldRenderer } from './FieldRenderer'
 
 // The inspector's Params tab -- docs/06-canvas-and-editor.md #6.9. Input/
-// Output tabs are empty-state placeholders until Phase 4 wires up real
-// execution data (see this phase's plan; the three-column layout collapses
-// to these same tabs on narrow viewports per the doc, so building tabs
-// first covers both cases).
+// Output show the selected node's data from the execution currently being
+// watched (execution-store), fetched via GET /executions/{id}/nodes/{nodeId}/data
+// once that node has actually run.
 
 const DEBOUNCE_MS = 300
 
@@ -41,6 +43,16 @@ export function Inspector() {
   })
   const values = form.watch()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const executionId = useExecutionStore((s) => s.executionId)
+  const runSummary = useNodeRunSummary(node?.id ?? '')
+  const hasRun = runSummary?.status === 'success' || runSummary?.status === 'error'
+  const { data: nodeData, isLoading: nodeDataLoading } = useNodeData(
+    hasRun ? executionId : null,
+    hasRun && node ? node.id : null,
+  )
+  const { data: execution } = useExecution(runSummary?.status === 'error' ? executionId : null)
+  const nodeError = execution?.nodes.find((n) => n.nodeId === node?.id)?.error
 
   useEffect(() => {
     if (!node) return
@@ -104,7 +116,16 @@ export function Inspector() {
           <TabsTrigger value="output">Output</TabsTrigger>
         </TabsList>
         <TabsContent value="input" className="flex-1 overflow-y-auto p-4">
-          <EmptyDataState />
+          {!hasRun ? (
+            <EmptyDataState />
+          ) : nodeDataLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : (
+            <DataView
+              items={nodeData?.inputItems ?? []}
+              emptyLabel="This node received no input items."
+            />
+          )}
         </TabsContent>
         <TabsContent value="params" className="flex-1 space-y-4 overflow-y-auto p-4">
           {visibleProperties.length === 0 ? (
@@ -116,7 +137,28 @@ export function Inspector() {
           )}
         </TabsContent>
         <TabsContent value="output" className="flex-1 overflow-y-auto p-4">
-          <EmptyDataState />
+          {runSummary?.status === 'error' && nodeError ? (
+            <div className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+              <p className="text-sm font-medium text-destructive">{nodeError.message}</p>
+              {nodeError.expression && (
+                <p className="font-mono text-xs text-muted-foreground">
+                  in expression: {nodeError.expression}
+                </p>
+              )}
+              {nodeError.code && (
+                <p className="text-xs text-muted-foreground">{nodeError.code}</p>
+              )}
+            </div>
+          ) : !hasRun ? (
+            <EmptyDataState />
+          ) : nodeDataLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : (
+            <DataView
+              items={nodeData?.outputItems ?? []}
+              emptyLabel="This node produced no output items."
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -127,8 +169,6 @@ function EmptyDataState() {
   return (
     <div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
       Run the workflow to see data here.
-      <br />
-      Available once execution ships.
     </div>
   )
 }

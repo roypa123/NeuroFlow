@@ -6,12 +6,14 @@ docs/17-testing-strategy.md #17.4.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import Role
 from app.core.security import create_access_token, hash_password
+from app.modules.executions.models import Execution
 from app.modules.organizations.models import Organization, OrganizationMember
 from app.modules.projects.models import Project
 from app.modules.users.models import User
@@ -85,3 +87,28 @@ async def make_workflow(
     workflow.active_version_id = version.id
     await session.flush()
     return workflow
+
+
+async def make_execution(
+    session: AsyncSession,
+    *,
+    workflow: Workflow,
+    project_id: UUID,
+    status: str = "queued",
+    mode: str = "manual",
+) -> Execution:
+    """Inserts an `Execution` row directly, bypassing
+    `POST /workflows/{id}/execute` -- that endpoint enqueues a real arq
+    job, which needs a reachable Redis this fixture has no business
+    depending on."""
+    execution = Execution(
+        workflow_id=workflow.id,
+        workflow_version_id=workflow.active_version_id,
+        project_id=project_id,
+        status=status,
+        mode=mode,
+        created_at=datetime.now(UTC),
+    )
+    session.add(execution)
+    await session.flush()
+    return execution

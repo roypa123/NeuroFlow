@@ -1,8 +1,8 @@
 """add executions node_executions execution_data
 
-Revision ID: 693e8cab4e56
+Revision ID: 298683ca3baa
 Revises: a3301536f147
-Create Date: 2026-09-08 09:25:16.628433
+Create Date: 2026-09-08 12:50:46.689402
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '693e8cab4e56'
+revision: str = '298683ca3baa'
 down_revision: Union[str, Sequence[str], None] = 'a3301536f147'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -37,7 +37,7 @@ def upgrade() -> None:
     sa.Column('finished_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('duration_ms', sa.Integer(), nullable=True),
     sa.Column('created_by', sa.Uuid(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], name=op.f('fk_executions_created_by_users'), ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['parent_execution_id'], ['executions.id'], name=op.f('fk_executions_parent_execution_id_executions'), ondelete='CASCADE'),
@@ -63,7 +63,7 @@ def upgrade() -> None:
     sa.Column('size_bytes', sa.Integer(), nullable=False),
     sa.Column('item_count', sa.Integer(), nullable=False),
     sa.Column('truncated', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.ForeignKeyConstraint(['execution_id'], ['executions.id'], name=op.f('fk_execution_data_execution_id_executions'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_execution_data'))
