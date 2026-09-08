@@ -17,6 +17,8 @@ from typing import Any, cast
 from arq import cron
 from arq.connections import RedisSettings
 from arq.typing import WorkerCoroutine
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
@@ -65,6 +67,19 @@ _CRON_JOBS = [
 ]
 
 
+def _build_redis_settings() -> RedisSettings:
+    # A network-hosted Redis can silently drop an idle connection (NAT/LB
+    # timeout) without either side seeing a FIN -- the worker's own queue
+    # poll loop then dies with a raw ConnectionError instead of just
+    # reconnecting, taking the whole process down. retry_on_error makes
+    # redis-py transparently reconnect and retry the single failed command
+    # instead of propagating it.
+    settings = RedisSettings.from_dsn(str(get_settings().redis_url))
+    settings.retry_on_timeout = True
+    settings.retry_on_error = [RedisConnectionError, RedisTimeoutError]
+    return settings
+
+
 class WorkerSettings:
     """arq reads this class by name (`arq app.worker.WorkerSettings`)."""
 
@@ -72,5 +87,5 @@ class WorkerSettings:
     cron_jobs = _CRON_JOBS
     on_startup = startup
     on_shutdown = shutdown
-    redis_settings = RedisSettings.from_dsn(str(get_settings().redis_url))
+    redis_settings = _build_redis_settings()
     max_jobs = get_settings().worker_max_jobs

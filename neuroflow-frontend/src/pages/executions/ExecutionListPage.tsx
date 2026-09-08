@@ -86,8 +86,12 @@ function ExecutionListPageContent({ organizationId }: { organizationId: string }
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {/* '' rather than `undefined` when unset -- see the identical note
+            in WorkflowListPage.tsx: Base UI's Select locks its
+            controlled-vs-uncontrolled mode on its own first render and
+            never revisits it. */}
         {projects && projects.length > 1 && (
-          <Select value={activeProjectId ?? undefined} onValueChange={setProjectId}>
+          <Select value={activeProjectId ?? ''} onValueChange={setProjectId}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Project" />
             </SelectTrigger>

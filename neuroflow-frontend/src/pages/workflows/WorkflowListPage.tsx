@@ -156,8 +156,15 @@ function WorkflowListPageContent({ organizationId }: { organizationId: string })
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {/* '' rather than `undefined` when unset: Base UI's Select fixes
+            controlled-vs-uncontrolled from its own first render and never
+            revisits it (@base-ui/utils/useControlled) -- if `activeProjectId`
+            is still null on that first paint (e.g. before the
+            default-to-first-project effect runs), passing `undefined`
+            would lock it into uncontrolled mode and it would never show
+            the project once one is picked. */}
         {projects && projects.length > 1 && (
-          <Select value={activeProjectId ?? undefined} onValueChange={setProjectId}>
+          <Select value={activeProjectId ?? ''} onValueChange={setProjectId}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Project" />
             </SelectTrigger>

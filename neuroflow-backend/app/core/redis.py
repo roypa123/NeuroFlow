@@ -16,7 +16,22 @@ from app.core.config import get_settings
 @lru_cache
 def get_redis_pool() -> ConnectionPool:
     settings = get_settings()
-    return ConnectionPool.from_url(str(settings.redis_url), decode_responses=True)
+    # A network-hosted Redis (vs. a same-host container) can silently drop an
+    # idle connection (NAT/LB timeout) without either side seeing a FIN --
+    # the next command then blocks until the OS-level TCP timeout, which can
+    # be a minute or more, stalling the DAG scheduler's cancel-flag check
+    # between every node. socket_timeout/health_check_interval bound that to
+    # a few seconds and retry_on_timeout recovers automatically instead of
+    # surfacing it as an execution failure.
+    return ConnectionPool.from_url(
+        str(settings.redis_url),
+        decode_responses=True,
+        socket_connect_timeout=5,
+        socket_timeout=10,
+        socket_keepalive=True,
+        health_check_interval=30,
+        retry_on_timeout=True,
+    )
 
 
 def get_redis() -> Redis:

@@ -119,7 +119,18 @@ function FieldBody({ property, field, hasError }: FieldBodyProps) {
         <Field data-invalid={hasError}>
           <FieldLabel>{property.displayName}</FieldLabel>
           <Select
-            value={typeof field.value === 'string' ? field.value : undefined}
+            // Base UI's Select decides controlled-vs-uncontrolled once, on
+            // its own first render, from whether `value` is `undefined`
+            // (@base-ui/utils/useControlled) -- and never revisits that
+            // decision. RHF's `values`-driven Controller reports `undefined`
+            // on the pre-effect first paint even when the node already has a
+            // saved value, which would permanently lock the Select into
+            // uncontrolled mode and leave it stuck on the placeholder
+            // forever, no matter what `field.value` becomes afterward. `''`
+            // is Base UI's own "nothing selected yet" value, so it keeps the
+            // Select controlled from the start without ever matching a real
+            // option.
+            value={typeof field.value === 'string' ? field.value : ''}
             onValueChange={field.onChange}
           >
             <SelectTrigger>

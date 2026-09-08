@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import subprocess
 from pathlib import Path
 from typing import Any, Literal
 
@@ -33,6 +34,32 @@ class CodeSandboxTimeoutError(CodeSandboxError):
     pass
 
 
+def _run_sync(payload: bytes) -> tuple[bytes, bytes]:
+    # subprocess.run (blocking, run off the event loop via asyncio.to_thread
+    # below) rather than asyncio.create_subprocess_exec: the latter needs a
+    # ProactorEventLoop on Windows, but app.core.database forces the
+    # Selector policy there for psycopg's async driver -- the two loop
+    # requirements can't coexist in one process. subprocess.run doesn't
+    # touch the event loop's subprocess transport at all, so it works
+    # under either policy and behaves identically on Linux/Docker prod.
+    try:
+        # Fixed argv, no shell, no user-controlled executable/path -- the
+        # untrusted `code` travels only through stdin `payload`, never the
+        # command line. S603/S607 target shell-injection/PATH-hijack shapes
+        # that don't apply here.
+        completed = subprocess.run(  # noqa: S603
+            ["node", f"--max-old-space-size={MAX_OLD_SPACE_MB}", str(_RUNNER_PATH)],  # noqa: S607
+            input=payload,
+            capture_output=True,
+            timeout=WALL_CLOCK_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise CodeSandboxTimeoutError(
+            f"Code node exceeded the {WALL_CLOCK_TIMEOUT_SECONDS}s wall-clock limit"
+        ) from exc
+    return completed.stdout, completed.stderr
+
+
 async def run_code(
     code: str,
     *,
@@ -44,24 +71,7 @@ async def run_code(
         {"code": code, "items": items, "mode": mode, "allowNetwork": allow_network}
     ).encode()
 
-    process = await asyncio.create_subprocess_exec(
-        "node",
-        f"--max-old-space-size={MAX_OLD_SPACE_MB}",
-        str(_RUNNER_PATH),
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    try:
-        stdout, stderr = await asyncio.wait_for(
-            process.communicate(payload), timeout=WALL_CLOCK_TIMEOUT_SECONDS
-        )
-    except TimeoutError as exc:
-        process.kill()
-        await process.wait()
-        raise CodeSandboxTimeoutError(
-            f"Code node exceeded the {WALL_CLOCK_TIMEOUT_SECONDS}s wall-clock limit"
-        ) from exc
+    stdout, stderr = await asyncio.to_thread(_run_sync, payload)
 
     if not stdout:
         raise CodeSandboxError(
