@@ -11,7 +11,8 @@ from typing import Any
 from app.core.http_client import AsyncHttpClient
 from app.engine.expressions import ExecutionScope, resolve_parameters
 from app.engine.expressions.scope import ItemView
-from app.modules.nodes.base import ExecutionInfo, WorkflowInfo
+from app.engine.secrets import SecretRegistry
+from app.modules.nodes.base import CredentialBinding, ExecutionInfo, WorkflowInfo
 from app.modules.nodes.descriptors import Item
 from app.modules.nodes.registry import NodeRegistry
 from app.modules.workflows.schemas import GraphNode
@@ -27,6 +28,11 @@ class ExecutionContext:
     http_client: AsyncHttpClient
     max_parallel: int = MAX_PARALLEL_NODES
     node_outputs: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    # Phase 5: resolved once in run_execution.py, before execute_dag runs --
+    # see this phase's plan findings #3/#4.
+    credential_bindings: dict[str, CredentialBinding] = field(default_factory=dict)
+    vars_snapshot: dict[str, str] = field(default_factory=dict)
+    secret_registry: SecretRegistry = field(default_factory=SecretRegistry)
 
     def scope_for_item(
         self, input_items: list[Item], index: int | None
@@ -54,6 +60,7 @@ class ExecutionContext:
             },
             run_index=0,
             now=datetime.now(UTC),
+            vars=dict(self.vars_snapshot),
         )
 
     def build_resolver(

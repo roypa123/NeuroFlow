@@ -21,6 +21,10 @@ from app.modules.executions.repository import (
 from app.modules.executions.service import ExecutionService
 from app.modules.nodes.service import NodeTypeService
 from app.modules.projects.dependencies import ProjectServiceDep
+from app.modules.schedules.repository import ScheduleRepository
+from app.modules.schedules.service import ScheduleService
+from app.modules.webhooks.repository import WebhookRepository
+from app.modules.webhooks.service import WebhookService
 from app.modules.workflows.controller import WorkflowController
 from app.modules.workflows.repository import (
     WorkflowRepository,
@@ -42,6 +46,8 @@ def get_workflow_service(
         projects=projects,
         node_types=NodeTypeService(),
         audit=audit,
+        webhooks=WebhookService(WebhookRepository(session)),
+        schedules=ScheduleService(ScheduleRepository(session)),
     )
 
 

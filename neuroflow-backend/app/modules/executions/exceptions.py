@@ -18,3 +18,7 @@ class ExecutionNotCancelableError(ConflictError):
 
 class ExecutionNotRetryableError(ConflictError):
     code = "execution.not_retryable"
+
+
+class ExecutionNotResumableError(ConflictError):
+    code = "execution.not_resumable"

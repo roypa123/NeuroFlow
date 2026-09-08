@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -39,6 +40,19 @@ class ExecutionFailedError(Exception):
     def __init__(self, error: dict[str, Any]) -> None:
         super().__init__(error.get("message", "Node execution failed"))
         self.error = error
+
+
+class ExecutionSuspendedError(Exception):
+    """Raised the moment a node's `NodeResult.status == "waiting"` reaches
+    the batch loop -- mirrors `ExecutionFailedError`'s short-circuit, since
+    the resume payload isn't known yet and successors must not be
+    scheduled from a dead/incomplete branch. See docs/12-execution-
+    engine.md #12.5."""
+
+    def __init__(self, resume_token: str, resume_after: datetime | None) -> None:
+        super().__init__("Execution suspended")
+        self.resume_token = resume_token
+        self.resume_after = resume_after
 
 
 def _handle_of(edge: GraphEdge) -> str:
@@ -126,6 +140,10 @@ async def execute_dag(
         )
 
         for node_id, result in zip(batch_ids, results, strict=True):
+            for level, message in result.logs:
+                await publisher.publish(
+                    "node.log", {"nodeId": node_id, "level": level, "message": message}
+                )
             await publisher.publish(
                 "node.finished",
                 {
@@ -135,6 +153,10 @@ async def execute_dag(
                     "itemsOut": result.items_out,
                 },
             )
+            if result.status == "waiting":
+                raise ExecutionSuspendedError(
+                    result.resume_token or "", result.resume_after
+                )
             on_error = dag.nodes_by_id[node_id].node.on_error
             if result.status == "error" and on_error == "stop":
                 default_error = {"message": "Node execution failed"}

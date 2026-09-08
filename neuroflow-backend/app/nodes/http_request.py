@@ -3,14 +3,18 @@ docs/13-node-catalog-and-sdk.md #13.3/#13.5.
 
 Uses `ctx.http` (the SSRF-guarded client from `app.core.http_client`), per
 docs/13-node-catalog-and-sdk.md #13.3: "a node that reaches for `httpx`
-directly bypasses [the SSRF policy] and MUST fail review." No
-`credentials` requirement is declared on this descriptor yet -- that's a
-Phase 5 concern, since no `credentials` module exists.
+directly bypasses [the SSRF policy] and MUST fail review." The optional
+`credentialId` parameter (a `credential`-type property, per Phase 5's
+declarative auth injection -- docs/15-security-and-credentials.md #15.6
+item 3) is resolved by `app.engine` into `ctx.credentials["credentialId"]`
+before this node runs; the node calls `ctx.authenticated_request` and never
+sees the decrypted value.
 """
 from __future__ import annotations
 
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput
 from app.modules.nodes.descriptors import (
+    CredentialRequirement,
     DisplayOptions,
     Item,
     NodeProperty,
@@ -35,7 +39,21 @@ class HttpRequestNode(BaseNode):
         inputs=[PortSpec(type="main")],
         outputs=[PortSpec(type="main")],
         idempotent=False,
+        credentials=[
+            CredentialRequirement(
+                types=["httpHeaderAuth", "httpBasicAuth", "oauth2Generic"], required=False
+            )
+        ],
         properties=[
+            NodeProperty(
+                name="credentialId",
+                display_name="Authentication",
+                type="credential",
+                type_options={
+                    "credentialTypes": ["httpHeaderAuth", "httpBasicAuth", "oauth2Generic"]
+                },
+                description="Optional. Applied to the request via the credential's declared auth.",
+            ),
             NodeProperty(
                 name="method",
                 display_name="Method",
@@ -89,8 +107,8 @@ class HttpRequestNode(BaseNode):
 
             if ctx.http is None:
                 raise RuntimeError("HTTP Request node requires ctx.http to be set")
-            response = await ctx.http.request(
-                method, url, json=body, timeout=timeout_ms / 1000
+            response = await ctx.authenticated_request(
+                "credentialId", method, url, json=body, timeout=timeout_ms / 1000
             )
             ctx.log("info", f"{method} {url} -> {response.status_code}")
             try:

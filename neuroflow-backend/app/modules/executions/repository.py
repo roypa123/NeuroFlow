@@ -102,6 +102,15 @@ class ExecutionRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
+    async def list_due_for_resume(self, *, now: datetime) -> list[Execution]:
+        stmt = select(Execution).where(
+            Execution.status == "waiting",
+            Execution.resume_after.is_not(None),
+            Execution.resume_after <= now,
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
     async def mark_running(self, execution: Execution, *, at: datetime) -> None:
         execution.status = "running"
         execution.started_at = at
@@ -209,6 +218,17 @@ class NodeExecutionRepository:
             NodeExecution.execution_id == execution_id,
             NodeExecution.node_id == node_id,
             NodeExecution.run_index == run_index,
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_waiting(self, execution_id: UUID) -> NodeExecution | None:
+        """The suspended node's own row -- `execute_dag` halts the whole
+        DAG on the first `'waiting'` result (docs/12-execution-engine.md
+        #12.5), so at most one row can have this status per execution."""
+        stmt = select(NodeExecution).where(
+            NodeExecution.execution_id == execution_id,
+            NodeExecution.status == "waiting",
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()

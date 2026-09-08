@@ -23,6 +23,7 @@ from app.modules.audit.service import AuditService
 from app.modules.executions.exceptions import (
     ExecutionNotCancelableError,
     ExecutionNotFoundError,
+    ExecutionNotResumableError,
     ExecutionNotRetryableError,
 )
 from app.modules.executions.models import Execution, NodeExecution
@@ -31,6 +32,7 @@ from app.modules.executions.repository import (
     ExecutionRepository,
     NodeExecutionRepository,
 )
+from app.modules.executions.waiting import apply_resume
 from app.modules.projects.models import Project
 from app.modules.workflows.service import WorkflowService
 
@@ -87,6 +89,38 @@ class ExecutionService:
             resource_id=execution.id,
             changes={"workflowId": str(workflow.id), "mode": mode},
         )
+        return execution
+
+    async def create_and_enqueue_system(
+        self,
+        *,
+        workflow_id: UUID,
+        mode: str,
+        trigger_data: dict[str, Any] | None,
+        parent_execution_id: UUID | None = None,
+    ) -> Execution:
+        """For triggers with no authenticated actor: webhook ingress and
+        the schedule tick. Resolves the workflow via `WorkflowService.
+        get_unchecked` rather than `get()`'s actor-authorization check --
+        there is no actor, only the system itself. Still pins
+        `workflow_version_id` at enqueue time exactly like
+        `create_and_enqueue` (docs/12-execution-engine.md #12.2)."""
+        workflow = await self._workflows.get_unchecked(workflow_id)
+        if workflow is None:
+            raise ExecutionNotFoundError("Workflow not found")
+        version = await self._workflows.get_active_version(workflow)
+        execution = await self._executions.create(
+            workflow_id=workflow.id,
+            workflow_version_id=version.id,
+            project_id=workflow.project_id,
+            mode=mode,
+            trigger_data=trigger_data,
+            created_by=None,
+            created_at=datetime.now(UTC),
+        )
+        if parent_execution_id is not None:
+            execution.parent_execution_id = parent_execution_id
+        await self._queue.enqueue_job("run_execution", execution.id)
         return execution
 
     async def get_role_for_project(self, *, project_id: UUID, user_id: UUID) -> Role:
@@ -172,6 +206,29 @@ class ExecutionService:
             action="execution.canceled",
             resource_type="execution",
             resource_id=execution.id,
+        )
+        return execution
+
+    async def resume(
+        self, *, execution_id: UUID, resume_token: str, payload: dict[str, Any] | None
+    ) -> Execution:
+        """The token itself is the authorization -- an approval-link
+        recipient need not be a NeuroFlow member -- so this takes no
+        `actor_id`/role check, unlike every other mutating method here.
+        See docs/12-execution-engine.md #12.5."""
+        execution = await self._executions.get_by_id(execution_id)
+        if execution is None:
+            raise ExecutionNotFoundError("Execution not found")
+        if execution.status != "waiting" or execution.resume_token != resume_token:
+            raise ExecutionNotResumableError(
+                "Execution is not waiting, or the resume token is invalid"
+            )
+        await apply_resume(
+            execution,
+            payload,
+            node_executions=self._node_executions,
+            data=self._data,
+            queue=self._queue,
         )
         return execution
 

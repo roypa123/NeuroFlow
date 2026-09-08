@@ -1,6 +1,7 @@
 """Execution routes: declarations only. Endpoint set mirrors
-docs/11-api-design.md #11.8 minus `/resume` (suspension/resume is Phase 5 --
-see this phase's plan's Scope decisions)."""
+docs/11-api-design.md #11.8. `/resume` takes no `RequestContextDep` --
+the resume token is itself the authorization, per `ExecutionService.
+resume`'s docstring."""
 from __future__ import annotations
 
 from typing import Annotated
@@ -19,6 +20,7 @@ from app.modules.executions.schemas import (
     ExecutionStatsResponse,
     ExecutionSummary,
     NodeDataRead,
+    ResumeRequest,
     RetryRequest,
 )
 
@@ -100,6 +102,13 @@ async def retry_execution(
     controller: ExecutionControllerDep,
 ) -> ExecutionRead:
     return await controller.retry(ctx, execution_id, payload)
+
+
+@router.post("/{execution_id}/resume", response_model=ExecutionRead)
+async def resume_execution(
+    execution_id: UUID, payload: ResumeRequest, controller: ExecutionControllerDep
+) -> ExecutionRead:
+    return await controller.resume(execution_id, payload)
 
 
 @router.delete("/{execution_id}", status_code=status.HTTP_204_NO_CONTENT)

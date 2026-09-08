@@ -18,11 +18,12 @@ from app.engine.context import ExecutionContext
 from app.engine.dag import DagNode
 from app.engine.expressions import ExpressionError
 from app.engine.models import NodeResult
+from app.engine.secrets import SecretRegistry
 from app.modules.executions.repository import (
     ExecutionDataRepository,
     NodeExecutionRepository,
 )
-from app.modules.nodes.base import NodeExecutionContext
+from app.modules.nodes.base import ExecutionSuspended, NodeExecutionContext
 from app.modules.nodes.descriptors import Item, NodeTypeDescriptor
 
 INLINE_THRESHOLD_BYTES = 64 * 1024
@@ -47,7 +48,9 @@ def flatten_output(
     return result
 
 
-def build_error_dict(dag_node: DagNode, exc: Exception) -> dict[str, Any]:
+def build_error_dict(
+    dag_node: DagNode, exc: Exception, *, secret_registry: SecretRegistry | None = None
+) -> dict[str, Any]:
     base: dict[str, Any] = {
         "nodeId": dag_node.node.id,
         "nodeName": dag_node.node.name or dag_node.node.id,
@@ -57,6 +60,11 @@ def build_error_dict(dag_node: DagNode, exc: Exception) -> dict[str, Any]:
     if isinstance(exc, ExpressionError):
         base["expression"] = exc.expression
         base["scope"] = exc.scope
+    # Provider errors frequently echo the request, including a credential
+    # value -- redact before this is ever persisted or shown in the UI.
+    # See docs/15-security-and-credentials.md #15.6 item 5.
+    if secret_registry is not None:
+        base = secret_registry.redact_json(base)
     return base
 
 
@@ -66,10 +74,13 @@ async def store_items(
     execution_id: UUID,
     data_repo: ExecutionDataRepository,
     storage: ObjectStorage,
+    secret_registry: SecretRegistry | None = None,
 ) -> UUID | None:
     if not items:
         return None
     payload = [item.model_dump(by_alias=True) for item in items]
+    if secret_registry is not None:
+        payload = secret_registry.redact_json(payload)
     raw = json.dumps(payload, default=str).encode()
 
     max_bytes = get_settings().max_payload_mb * 1024 * 1024
@@ -108,7 +119,11 @@ def _retry_kwargs(dag_node: DagNode) -> dict[str, Any]:
         "wait": tenacity.wait_exponential_jitter(
             initial=node.wait_between_tries_ms / 1000
         ),
-        "retry": tenacity.retry_if_exception_type(Exception),
+        # ExecutionSuspended is a deliberate control-flow signal, not a
+        # transient failure -- retrying it would turn a Wait node's
+        # suspension into a busy-retry loop.
+        "retry": tenacity.retry_if_exception_type(Exception)
+        & tenacity.retry_if_not_exception_type(ExecutionSuspended),
         "reraise": True,
     }
 
@@ -138,21 +153,28 @@ async def run_node(
     )
 
     resolver = ctx.build_resolver(node, input_items)
+    captured_logs: list[tuple[str, str]] = []
 
     async def _attempt() -> dict[str, list[list[Item]]]:
         params0 = resolver(0)
+        binding = ctx.credential_bindings.get(node.id)
         node_ctx = NodeExecutionContext(
             input_items=input_items,
             params=params0,
             http=ctx.http_client,
-            credentials={},
+            credentials={"credentialId": binding} if binding is not None else {},
             workflow=ctx.workflow_info,
             execution=ctx.execution_info,
             run_index=0,
             resolver=resolver,
         )
         instance = node_cls()
-        return await instance.execute(node_ctx)
+        try:
+            return await instance.execute(node_ctx)
+        finally:
+            # Captures logs even on failure/retry -- a retried attempt's
+            # own log lines (e.g. "Retrying after 429") still matter.
+            captured_logs.extend(node_ctx.logs)
 
     retries = 0
     try:
@@ -162,8 +184,23 @@ async def run_node(
             retries = retrying.statistics.get("attempt_number", 1) - 1
         else:
             output = await _attempt()
+    except ExecutionSuspended as exc:
+        finished_at = datetime.now(UTC)
+        await node_exec_repo.finish(
+            node_exec,
+            status="waiting",
+            at=finished_at,
+            items_in=len(input_items),
+        )
+        return NodeResult(
+            status="waiting",
+            duration_ms=_ms(started_at, finished_at),
+            items_in=len(input_items),
+            resume_token=exc.resume_token,
+            resume_after=exc.resume_after,
+        )
     except Exception as exc:  # noqa: BLE001 -- node/expression errors are data, not crashes
-        error = build_error_dict(dag_node, exc)
+        error = build_error_dict(dag_node, exc, secret_registry=ctx.secret_registry)
         finished_at = datetime.now(UTC)
         duration_ms = _ms(started_at, finished_at)
         if node.on_error == "stop":
@@ -190,6 +227,7 @@ async def run_node(
             execution_id=execution_id,
             data_repo=data_repo,
             storage=storage,
+            secret_registry=ctx.secret_registry,
         )
         await node_exec_repo.finish(
             node_exec,
@@ -216,6 +254,7 @@ async def run_node(
         execution_id=execution_id,
         data_repo=data_repo,
         storage=storage,
+        secret_registry=ctx.secret_registry,
     )
     await node_exec_repo.finish(
         node_exec,
@@ -233,6 +272,7 @@ async def run_node(
         items_in=len(input_items),
         items_out=len(all_output_items),
         retries=retries,
+        logs=[(level, ctx.secret_registry.redact(msg)) for level, msg in captured_logs],
     )
 
 

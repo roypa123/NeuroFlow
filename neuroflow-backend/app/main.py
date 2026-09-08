@@ -30,6 +30,7 @@ from app.core.middleware import (
 )
 from app.core.queue import close_arq_pool
 from app.core.redis import get_redis
+from app.modules.webhooks.ingress_router import router as webhook_ingress_router
 
 logger = get_logger(__name__)
 
@@ -112,6 +113,10 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
     app.include_router(api_v1_router)
+    # Deliberately outside /api/v1 -- third-party services register these
+    # URLs permanently and they must survive an API version bump untouched.
+    # See docs/11-api-design.md #11.12.
+    app.include_router(webhook_ingress_router)
 
     @app.get("/health", tags=["health"])
     async def health() -> dict[str, str]:

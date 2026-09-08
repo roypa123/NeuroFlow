@@ -15,7 +15,12 @@ from typing import Any
 from app.core.config import get_settings
 from app.core.database import session_scope
 from app.core.logging import get_logger
-from app.modules.executions.repository import ExecutionRepository
+from app.modules.executions.repository import (
+    ExecutionDataRepository,
+    ExecutionRepository,
+    NodeExecutionRepository,
+)
+from app.modules.executions.waiting import apply_resume
 
 logger = get_logger(__name__)
 
@@ -54,4 +59,26 @@ async def watchdog_sweep(_ctx: dict[str, Any], *_args: Any, **_kwargs: Any) -> N
             }
             await repo.finish(
                 execution, status="error", at=datetime.now(UTC), error=timeout_error
+            )
+
+
+async def resume_sweep(ctx: dict[str, Any], *_args: Any, **_kwargs: Any) -> None:
+    """Time-based half of suspend/resume (docs/12-execution-engine.md
+    #12.5): re-enqueues `waiting` executions whose `resume_after` has
+    passed. No token check -- `list_due_for_resume` already selected only
+    rows past their deadline, and unlike the event-based `POST
+    .../resume` endpoint there is no external caller to authenticate."""
+    async with session_scope() as session:
+        execution_repo = ExecutionRepository(session)
+        node_exec_repo = NodeExecutionRepository(session)
+        data_repo = ExecutionDataRepository(session)
+        due = await execution_repo.list_due_for_resume(now=datetime.now(UTC))
+        for execution in due:
+            logger.info("execution.resume_due", execution_id=str(execution.id))
+            await apply_resume(
+                execution,
+                None,
+                node_executions=node_exec_repo,
+                data=data_repo,
+                queue=ctx["redis"],
             )

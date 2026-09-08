@@ -22,6 +22,7 @@ from app.modules.executions.schemas import (
     ItemRead,
     NodeDataRead,
     NodeExecutionRead,
+    ResumeRequest,
     RetryRequest,
 )
 from app.modules.executions.service import ExecutionService
@@ -171,6 +172,19 @@ class ExecutionController:
             from_failed_node=payload.from_failed_node,
         )
         return await self._to_read(new_execution)
+
+    async def resume(
+        self, execution_id: UUID, payload: ResumeRequest
+    ) -> ExecutionRead:
+        # No RequestContext: the resume token itself is the authorization
+        # (an approval-link recipient need not be a NeuroFlow member) --
+        # see ExecutionService.resume's docstring.
+        execution = await self._service.resume(
+            execution_id=execution_id,
+            resume_token=payload.resume_token,
+            payload=payload.payload,
+        )
+        return await self._to_read(execution)
 
     async def delete(self, ctx: RequestContext, execution_id: UUID) -> None:
         execution, project, role = await self._service.get(

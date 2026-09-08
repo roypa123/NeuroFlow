@@ -14,7 +14,7 @@ ExecutionStatus = Literal[
     "queued", "running", "success", "error", "canceled", "waiting"
 ]
 ExecutionMode = Literal["manual", "trigger", "webhook", "schedule", "retry", "sub"]
-NodeExecutionStatus = Literal["running", "success", "error", "skipped"]
+NodeExecutionStatus = Literal["running", "success", "error", "skipped", "waiting"]
 
 
 class ExecutionSummary(CamelModel):
@@ -68,6 +68,14 @@ class NodeDataRead(CamelModel):
 
 class RetryRequest(CamelModel):
     from_failed_node: bool = True
+
+
+class ResumeRequest(CamelModel):
+    # The token itself is the authorization for this endpoint -- an
+    # approval link recipient need not be a NeuroFlow member. See
+    # docs/12-execution-engine.md #12.5.
+    resume_token: str
+    payload: dict[str, Any] | None = None
 
 
 class BulkDeleteFilter(CamelModel):

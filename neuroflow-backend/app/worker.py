@@ -24,7 +24,8 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.engine.registry import build_runtime_registry
 from app.engine.run_execution import run_execution
-from app.engine.sweeper import recovery_sweep, watchdog_sweep
+from app.engine.sweeper import recovery_sweep, resume_sweep, watchdog_sweep
+from app.modules.schedules.service import schedule_tick
 
 # The worker's own import chain (engine -> executions/workflows
 # repositories) never touches app.modules.users/organizations/audit/auth,
@@ -37,9 +38,13 @@ from app.engine.sweeper import recovery_sweep, watchdog_sweep
 # router pulls users.models in transitively); the worker does not.
 from app.modules.audit import models as _audit_models  # noqa: F401
 from app.modules.auth import models as _auth_models  # noqa: F401
+from app.modules.credentials import models as _credentials_models  # noqa: F401
 from app.modules.organizations import models as _organizations_models  # noqa: F401
 from app.modules.projects import models as _projects_models  # noqa: F401
+from app.modules.schedules import models as _schedules_models  # noqa: F401
 from app.modules.users import models as _users_models  # noqa: F401
+from app.modules.variables import models as _variables_models  # noqa: F401
+from app.modules.webhooks import models as _webhooks_models  # noqa: F401
 from app.modules.workflows import models as _workflows_models  # noqa: F401
 
 logger = get_logger(__name__)
@@ -56,14 +61,21 @@ async def shutdown(ctx: dict[str, Any]) -> None:
 
 
 _SWEEP_MINUTES = set(range(0, 60, 5))
+_EVERY_MINUTE = set(range(60))
 # mypy's structural match against arq's WorkerCoroutine Protocol is oddly
 # sensitive to watchdog_sweep's unused-ctx param name; an explicit cast is
 # clearer here than a type: ignore.
 _watchdog_coroutine = cast(WorkerCoroutine, watchdog_sweep)
+_resume_coroutine = cast(WorkerCoroutine, resume_sweep)
+_schedule_tick_coroutine = cast(WorkerCoroutine, schedule_tick)
 
 _CRON_JOBS = [
     cron(recovery_sweep, minute=_SWEEP_MINUTES, run_at_startup=False),
     cron(_watchdog_coroutine, minute=_SWEEP_MINUTES, run_at_startup=False),
+    cron(_resume_coroutine, minute=_SWEEP_MINUTES, run_at_startup=False),
+    # Schedule triggers need minute-level precision -- see docs/09-domain-
+    # modules.md #9.12.
+    cron(_schedule_tick_coroutine, minute=_EVERY_MINUTE, run_at_startup=False),
 ]
 
 

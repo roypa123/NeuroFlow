@@ -21,6 +21,8 @@ from app.modules.nodes.exceptions import NodeTypeNotFoundError
 from app.modules.nodes.service import NodeTypeService
 from app.modules.projects.models import Project
 from app.modules.projects.service import ProjectService
+from app.modules.schedules.service import ScheduleService
+from app.modules.webhooks.service import WebhookService, auth_spec_from_node_params
 from app.modules.workflows.exceptions import (
     WorkflowNotFoundError,
     WorkflowValidationError,
@@ -32,7 +34,7 @@ from app.modules.workflows.repository import (
     WorkflowRepository,
     WorkflowVersionRepository,
 )
-from app.modules.workflows.schemas import WorkflowGraph, WorkflowSettings
+from app.modules.workflows.schemas import GraphNode, WorkflowGraph, WorkflowSettings
 
 
 def _compute_checksum(graph: dict[str, Any]) -> str:
@@ -48,17 +50,28 @@ class WorkflowService:
         projects: ProjectService,
         node_types: NodeTypeService,
         audit: AuditService,
+        webhooks: WebhookService,
+        schedules: ScheduleService,
     ) -> None:
         self._workflows = workflows
         self._versions = versions
         self._projects = projects
         self._node_types = node_types
         self._audit = audit
+        self._webhooks = webhooks
+        self._schedules = schedules
 
     async def _get_project_and_role(
         self, *, project_id: UUID, user_id: UUID
     ) -> tuple[Project, Role]:
         return await self._projects.get(project_id=project_id, user_id=user_id)
+
+    async def get_unchecked(self, workflow_id: UUID) -> Workflow | None:
+        """No actor/role check -- for system-triggered callers with no
+        authenticated user (webhook ingress, the schedule tick, a
+        sub-workflow call). Anything reachable by a router must go through
+        `get()` instead."""
+        return await self._workflows.get_by_id(workflow_id)
 
     async def get_role_for_project(
         self, *, project_id: UUID, user_id: UUID
@@ -247,21 +260,52 @@ class WorkflowService:
         graph = (
             WorkflowGraph.model_validate(latest.graph) if latest else WorkflowGraph()
         )
-        trigger_count = 0
+        trigger_nodes: list[tuple[GraphNode, str]] = []
         for node in graph.nodes:
             try:
                 descriptor = self._node_types.get(node.type)
             except NodeTypeNotFoundError:
                 continue
             if descriptor.group == "trigger":
-                trigger_count += 1
-        if trigger_count != 1:
+                trigger_nodes.append((node, descriptor.key))
+        if len(trigger_nodes) != 1:
             raise WorkflowValidationError(
                 "A workflow must have exactly one trigger node to activate"
             )
-        # Real trigger registration (webhooks/schedules) is Phase 5 -- see
-        # this phase's plan. Activation here only flips the flag once the
-        # graph is structurally activatable.
+        trigger_node, trigger_key = trigger_nodes[0]
+
+        # Re-activating an already-active workflow (e.g. after editing the
+        # trigger node's path/cron) must not hit webhook_registrations'
+        # UNIQUE(path, method, is_test) constraint against its own stale
+        # row -- clear old registrations before creating fresh ones so
+        # activation is idempotent.
+        await self._webhooks.unregister(workflow.id)
+        await self._schedules.unregister(workflow.id)
+
+        # Registration is a transaction across modules (docs/09-domain-
+        # modules.md #9.8): if either register call fails, the whole
+        # activation must roll back rather than flip is_active with no
+        # trigger actually listening -- a session-scoped exception here
+        # propagates up through the controller's request transaction, so
+        # nothing commits.
+        if trigger_key == "neuroflow.webhookTrigger":
+            await self._webhooks.register(
+                workflow_id=workflow.id,
+                node_id=trigger_node.id,
+                path=trigger_node.parameters.get("path") or str(trigger_node.id),
+                method=trigger_node.parameters.get("method", "POST"),
+                auth=auth_spec_from_node_params(trigger_node.parameters),
+                response_mode=trigger_node.parameters.get("responseMode", "immediate"),
+            )
+        elif trigger_key == "neuroflow.scheduleTrigger":
+            await self._schedules.register(
+                workflow_id=workflow.id,
+                node_id=trigger_node.id,
+                cron=trigger_node.parameters["cron"],
+                timezone=trigger_node.parameters.get("timezone", "UTC"),
+                catch_up=bool(trigger_node.parameters.get("catchUp", False)),
+            )
+
         await self._workflows.set_active(workflow, is_active=True)
         await self._audit.record(
             organization_id=organization_id,
@@ -275,6 +319,8 @@ class WorkflowService:
     async def deactivate(
         self, *, workflow: Workflow, organization_id: UUID, actor_id: UUID
     ) -> Workflow:
+        await self._webhooks.unregister(workflow.id)
+        await self._schedules.unregister(workflow.id)
         await self._workflows.set_active(workflow, is_active=False)
         await self._audit.record(
             organization_id=organization_id,
