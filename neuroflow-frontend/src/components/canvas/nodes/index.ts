@@ -9,7 +9,7 @@ import { TriggerNode } from './TriggerNode'
 export const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
   branch: BranchNode,
-  default: ActionNode,
+  action: ActionNode,
 }
 
 export { ActionNode, BranchNode, TriggerNode }

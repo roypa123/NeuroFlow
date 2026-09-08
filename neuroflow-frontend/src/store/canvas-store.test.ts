@@ -86,10 +86,10 @@ describe('renderKindFor', () => {
     expect(renderKindFor(descriptorsByKey['neuroflow.if'])).toBe('branch')
   })
   it('defaults everything else to the action shape', () => {
-    expect(renderKindFor(descriptorsByKey['neuroflow.set'])).toBe('default')
+    expect(renderKindFor(descriptorsByKey['neuroflow.set'])).toBe('action')
   })
-  it('falls back to default for an unknown descriptor', () => {
-    expect(renderKindFor(undefined)).toBe('default')
+  it('falls back to action for an unknown descriptor', () => {
+    expect(renderKindFor(undefined)).toBe('action')
   })
 })
 
@@ -177,7 +177,7 @@ describe('canvas store: mutations', () => {
     })
     const node = useCanvasStore.getState().nodes.find((n) => n.id === id)
     expect(node?.data.parameters).toEqual({ mode: 'merge' })
-    expect(node?.type).toBe('default')
+    expect(node?.type).toBe('action')
     expect(useCanvasStore.getState().isDirty).toBe(true)
   })
 

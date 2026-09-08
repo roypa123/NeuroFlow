@@ -20,19 +20,25 @@ import type { WorkflowGraph } from '@/types/workflows'
 // docs/06-canvas-and-editor.md #6.6.
 //
 // A node's React Flow `type` is a small, fixed render-kind ("trigger" |
-// "branch" | "default") resolved once from its descriptor -- never the
+// "branch" | "action") resolved once from its descriptor -- never the
 // raw node-type key (e.g. "neuroflow.if"). That key lives in
 // `data.nodeTypeKey`. This is what lets `nodeTypes` stay a module-scope
 // constant (docs/06-canvas-and-editor.md #6.12 rule 1) instead of being
 // rebuilt from the fetched catalog.
+//
+// Deliberately never "default"/"input"/"output"/"group" -- those are
+// @xyflow/react's own built-in type names, and its base stylesheet ships a
+// `.react-flow__node-default { width: 150px; padding: 10px; ... }` rule
+// that collides with our custom node's own sizing the moment a node is
+// registered under that key, even with a full component override.
 
-export type RenderKind = 'trigger' | 'branch' | 'default'
+export type RenderKind = 'trigger' | 'branch' | 'action'
 
 export function renderKindFor(descriptor: NodeTypeDescriptor | undefined): RenderKind {
-  if (!descriptor) return 'default'
+  if (!descriptor) return 'action'
   if (descriptor.group === 'trigger') return 'trigger'
   if (descriptor.outputs.length > 1) return 'branch'
-  return 'default'
+  return 'action'
 }
 
 export interface NodeData extends Record<string, unknown> {
