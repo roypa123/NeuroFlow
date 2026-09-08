@@ -14,6 +14,7 @@ from app.core.types import Base
 # before autogenerate runs.
 from app.modules.audit import models as audit_models  # noqa: E402, F401
 from app.modules.auth import models as auth_models  # noqa: E402, F401
+from app.modules.executions import models as executions_models  # noqa: E402, F401
 from app.modules.organizations import models as organizations_models  # noqa: E402, F401
 from app.modules.projects import models as projects_models  # noqa: E402, F401
 from app.modules.users import models as users_models  # noqa: E402, F401

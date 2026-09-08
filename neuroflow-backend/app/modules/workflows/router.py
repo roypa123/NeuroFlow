@@ -12,6 +12,8 @@ from app.api.deps import RequestContextDep
 from app.core.pagination import KeysetPage
 from app.modules.workflows.dependencies import WorkflowControllerDep
 from app.modules.workflows.schemas import (
+    ExecuteRequest,
+    ExecuteResponse,
     WorkflowCreate,
     WorkflowDuplicateRequest,
     WorkflowExport,
@@ -99,6 +101,18 @@ async def deactivate_workflow(
     workflow_id: UUID, ctx: RequestContextDep, controller: WorkflowControllerDep
 ) -> WorkflowRead:
     return await controller.deactivate(ctx, workflow_id)
+
+
+@router.post(
+    "/{workflow_id}/execute", response_model=ExecuteResponse, status_code=status.HTTP_202_ACCEPTED
+)
+async def execute_workflow(
+    workflow_id: UUID,
+    ctx: RequestContextDep,
+    controller: WorkflowControllerDep,
+    payload: ExecuteRequest = ExecuteRequest(),
+) -> ExecuteResponse:
+    return await controller.execute(ctx, workflow_id, payload)
 
 
 @router.post(

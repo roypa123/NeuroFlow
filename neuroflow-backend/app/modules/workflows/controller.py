@@ -7,8 +7,11 @@ from uuid import UUID
 from app.api.deps import RequestContext
 from app.core.pagination import KeysetPage
 from app.core.permissions import Permission, require
+from app.modules.executions.service import ExecutionService
 from app.modules.workflows.models import Workflow, WorkflowVersion
 from app.modules.workflows.schemas import (
+    ExecuteRequest,
+    ExecuteResponse,
     WorkflowCreate,
     WorkflowDuplicateRequest,
     WorkflowExport,
@@ -79,8 +82,9 @@ def _to_version_detail(version: WorkflowVersion) -> WorkflowVersionDetail:
 
 
 class WorkflowController:
-    def __init__(self, service: WorkflowService) -> None:
+    def __init__(self, service: WorkflowService, executions: ExecutionService) -> None:
         self._service = service
+        self._executions = executions
 
     async def list_for_project(
         self,
@@ -270,6 +274,21 @@ class WorkflowController:
             workflow_id=workflow_id, version_number=version_number
         )
         return _to_version_detail(version)
+
+    async def execute(
+        self, ctx: RequestContext, workflow_id: UUID, payload: ExecuteRequest
+    ) -> ExecuteResponse:
+        workflow, _project, role = await self._service.get(
+            workflow_id=workflow_id, user_id=ctx.user_id
+        )
+        require(role, Permission.WORKFLOW_EXECUTE, scopes=ctx.scopes)
+        execution = await self._executions.create_and_enqueue(
+            workflow_id=workflow.id,
+            mode="manual",
+            trigger_data=payload.trigger_data,
+            actor_id=ctx.user_id,
+        )
+        return ExecuteResponse(execution_id=execution.id)
 
     async def restore_version(
         self, ctx: RequestContext, workflow_id: UUID, version_id: UUID

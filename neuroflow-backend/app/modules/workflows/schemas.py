@@ -145,3 +145,11 @@ class WorkflowVersionRead(CamelModel):
 
 class WorkflowVersionDetail(WorkflowVersionRead):
     graph: WorkflowGraph
+
+
+class ExecuteRequest(CamelModel):
+    trigger_data: dict[str, Any] | None = None
+
+
+class ExecuteResponse(CamelModel):
+    execution_id: UUID

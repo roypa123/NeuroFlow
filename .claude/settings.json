@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx vitest *)",
       "Bash(echo \"exit:$?\")",
-      "Bash(.venv/Scripts/python.exe -c ' *)"
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(.venv/Scripts/python.exe -m alembic revision --autogenerate -m \"add executions node_executions execution_data\")"
     ]
   }
 }
