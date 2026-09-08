@@ -8,6 +8,7 @@ immediately after resolving credentials and `$vars`), and every log line,
 error payload, and persisted item passes through `redact()`/`redact_json()`
 before it can reach a database row, an SSE event, or an API response.
 """
+
 from __future__ import annotations
 
 from typing import Any

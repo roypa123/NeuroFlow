@@ -7,6 +7,7 @@ setting rather than each workflow's own `settings.timeoutSeconds` override
 watchdog after the fact) is a natural follow-up once a workflow actually
 sets a non-default value in practice.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta

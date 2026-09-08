@@ -3,6 +3,7 @@ the `{{ }}` template resolution and per-parameter recursive resolution
 that `app.engine.context` calls per item. See docs/12-execution-engine.md
 #12.6: 100 ms CPU budget and a 1 MB result cap per expression.
 """
+
 from __future__ import annotations
 
 import json

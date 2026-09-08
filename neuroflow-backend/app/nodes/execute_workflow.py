@@ -7,6 +7,7 @@ actor at this point to check a role against -- only the worker. See
 docs/13-node-catalog-and-sdk.md #13.5 ("Execute Sub-workflow") and this
 phase's plan finding #7.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -16,10 +17,22 @@ from app.core.database import session_scope
 from app.core.queue import get_arq_pool
 from app.core.redis import get_redis
 from app.modules.executions.repository import ExecutionRepository
-from app.modules.executions.waiting import load_last_output_items, subscribe, wait_for_finish
+from app.modules.executions.waiting import (
+    load_last_output_items,
+    subscribe,
+    wait_for_finish,
+)
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput
-from app.modules.nodes.descriptors import Item, NodeProperty, NodeTypeDescriptor, PortSpec
-from app.modules.workflows.repository import WorkflowRepository, WorkflowVersionRepository
+from app.modules.nodes.descriptors import (
+    Item,
+    NodeProperty,
+    NodeTypeDescriptor,
+    PortSpec,
+)
+from app.modules.workflows.repository import (
+    WorkflowRepository,
+    WorkflowVersionRepository,
+)
 
 _MAX_WAIT_SECONDS = 600.0
 
@@ -102,7 +115,9 @@ class ExecuteWorkflowNode(BaseNode):
             return {"main": [[Item(json={"executionId": str(child_id)})]]}
 
         status = await wait_for_finish(pubsub, timeout_seconds=_MAX_WAIT_SECONDS)
-        output_items = await load_last_output_items(child_id) if status == "success" else []
+        output_items = (
+            await load_last_output_items(child_id) if status == "success" else []
+        )
         if not output_items:
             output_items = [Item(json={"executionId": str(child_id), "status": status})]
         return {"main": [output_items]}

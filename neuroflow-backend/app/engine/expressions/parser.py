@@ -4,6 +4,7 @@ logical operators, and ternary. No arbitrary function definitions, no
 loops/comprehensions, no attribute access to dunder names. See
 docs/12-execution-engine.md #12.6 and ADR-010.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable

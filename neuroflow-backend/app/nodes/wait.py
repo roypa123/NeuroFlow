@@ -8,6 +8,7 @@ node's whole job is to raise it with the right token/deadline. On resume,
 `ExecutionService.resume` marks this node's row `success` directly -- this
 `execute()` is never re-entered for the same suspension.
 """
+
 from __future__ import annotations
 
 import secrets
@@ -35,7 +36,7 @@ class WaitNode(BaseNode):
         name="Wait",
         group="flow",
         category="Core",
-        description="Pause the execution for a fixed time, or until resumed externally.",
+        description="Pause for a fixed time, or until resumed externally.",
         icon="clock",
         color="cat-flow",
         aliases=["delay", "pause", "sleep", "approval"],

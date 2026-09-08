@@ -12,6 +12,7 @@ V8 itself; the `asyncio.wait_for` here (30 s, the documented hard cap) is
 the backstop for anything that hangs the subprocess as a whole (e.g. stuck
 I/O) rather than just spinning the CPU.
 """
+
 from __future__ import annotations
 
 import asyncio

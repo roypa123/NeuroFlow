@@ -31,7 +31,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from app.core.http_client import AsyncHttpClient
-from app.modules.credentials.types import AuthenticationSpec, apply_authentication
+from app.modules.credentials.type_registry import (
+    AuthenticationSpec,
+    apply_authentication,
+)
 from app.modules.nodes.descriptors import Item, NodeTypeDescriptor
 
 if TYPE_CHECKING:

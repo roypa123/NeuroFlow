@@ -2,6 +2,7 @@
 nodes only), per-node error policy, and `NodeExecution`/`ExecutionData`
 persistence. See docs/12-execution-engine.md #12.4.
 """
+
 from __future__ import annotations
 
 import json
@@ -18,7 +19,7 @@ from app.engine.context import ExecutionContext
 from app.engine.dag import DagNode
 from app.engine.expressions import ExpressionError
 from app.engine.models import NodeResult
-from app.engine.secrets import SecretRegistry
+from app.engine.redaction import SecretRegistry
 from app.modules.executions.repository import (
     ExecutionDataRepository,
     NodeExecutionRepository,

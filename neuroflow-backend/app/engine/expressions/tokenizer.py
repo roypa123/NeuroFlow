@@ -2,6 +2,7 @@
 docs/12-execution-engine.md #12.6 and ADR-010: expressions are parsed with a
 restricted grammar, never `eval`-ed.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

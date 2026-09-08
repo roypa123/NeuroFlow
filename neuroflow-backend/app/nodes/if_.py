@@ -1,6 +1,7 @@
 """IF -- boolean condition routing two outputs. See
 docs/13-node-catalog-and-sdk.md #13.5 and docs/06-canvas-and-editor.md #6.5
 for the true/false branch labels this descriptor's `outputs` drive."""
+
 from __future__ import annotations
 
 from collections.abc import Callable

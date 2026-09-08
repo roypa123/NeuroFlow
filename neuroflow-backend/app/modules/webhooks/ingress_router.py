@@ -3,6 +3,7 @@ directly on the app in `app.main`): third-party services register these
 URLs permanently and they must survive an API version bump untouched. See
 docs/11-api-design.md #11.12.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Request, Response

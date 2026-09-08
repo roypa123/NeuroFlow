@@ -7,6 +7,7 @@ the deferral Phase 4 explicitly left open) lives in
 `app.modules.variables.decryption`, not here -- same reasoning, and the
 same import-linter enforcement, as `app.modules.credentials.decryption`.
 """
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -38,7 +39,11 @@ class VariableService:
         value: str,
         is_secret: bool,
     ) -> Variable:
-        blob = encrypt_credential({"value": value}, self._master_key) if is_secret else None
+        blob = (
+            encrypt_credential({"value": value}, self._master_key)
+            if is_secret
+            else None
+        )
         return await self._repository.create(
             organization_id=organization_id,
             project_id=project_id,

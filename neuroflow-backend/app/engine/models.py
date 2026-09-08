@@ -1,5 +1,6 @@
 """Shared dataclasses passed between `dag.py`, `scheduler.py`, and
 `runtime.py`. See docs/12-execution-engine.md #12.3/#12.4."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

@@ -2,6 +2,7 @@
 browsers by the API's SSE endpoint (`GET /executions/{id}/stream`). See
 docs/12-execution-engine.md #12.10.
 """
+
 from __future__ import annotations
 
 import json

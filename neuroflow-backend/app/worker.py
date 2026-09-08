@@ -25,7 +25,6 @@ from app.core.logging import configure_logging, get_logger
 from app.engine.registry import build_runtime_registry
 from app.engine.run_execution import run_execution
 from app.engine.sweeper import recovery_sweep, resume_sweep, watchdog_sweep
-from app.modules.schedules.service import schedule_tick
 
 # The worker's own import chain (engine -> executions/workflows
 # repositories) never touches app.modules.users/organizations/audit/auth,
@@ -42,6 +41,7 @@ from app.modules.credentials import models as _credentials_models  # noqa: F401
 from app.modules.organizations import models as _organizations_models  # noqa: F401
 from app.modules.projects import models as _projects_models  # noqa: F401
 from app.modules.schedules import models as _schedules_models  # noqa: F401
+from app.modules.schedules.service import schedule_tick
 from app.modules.users import models as _users_models  # noqa: F401
 from app.modules.variables import models as _variables_models  # noqa: F401
 from app.modules.webhooks import models as _webhooks_models  # noqa: F401

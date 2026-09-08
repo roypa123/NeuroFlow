@@ -7,6 +7,7 @@ duplicated between the two.
 Lives under `app.nodes`, so `app.api`/`app.main` never import it either,
 per the import-linter contract in `pyproject.toml`.
 """
+
 from __future__ import annotations
 
 import importlib

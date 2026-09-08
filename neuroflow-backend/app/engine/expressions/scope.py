@@ -5,6 +5,7 @@ See docs/12-execution-engine.md #12.6's scope table.
 `variables` module yet (Phase 5), and the environment allow-list is empty
 by default -- see this phase's plan's Scope decisions.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

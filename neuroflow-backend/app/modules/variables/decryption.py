@@ -9,6 +9,7 @@ importing it, while the rest of `app.modules.variables` (list/create/
 update/delete -- none of which ever return a secret value) stays
 router-reachable.
 """
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -40,7 +41,11 @@ async def get_vars_snapshot(
         if not row.is_secret:
             result[row.key] = row.value or ""
             continue
-        if row.encrypted_value is None or row.encrypted_dek is None or row.nonce is None:
+        if (
+            row.encrypted_value is None
+            or row.encrypted_dek is None
+            or row.nonce is None
+        ):
             continue
         blob = EncryptedBlob(
             ciphertext=row.encrypted_value,

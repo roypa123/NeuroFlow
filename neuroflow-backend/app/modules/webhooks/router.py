@@ -4,6 +4,7 @@
 `/api/v1` in `app.main` -- these two are the authenticated, `/api/v1`-side
 "what URL do I paste into Stripe" endpoints the editor calls.
 """
+
 from __future__ import annotations
 
 from uuid import UUID

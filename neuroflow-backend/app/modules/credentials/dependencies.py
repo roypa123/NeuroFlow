@@ -1,5 +1,6 @@
 """DI wiring for the credentials module. See docs/08-backend-architecture.md
 #8.4."""
+
 from __future__ import annotations
 
 from typing import Annotated

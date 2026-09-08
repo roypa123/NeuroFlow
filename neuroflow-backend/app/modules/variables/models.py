@@ -8,6 +8,7 @@ row, so it gets the same three columns as `credentials` rather than a
 hand-rolled single-blob framing -- internal consistency with the one other
 encrypted-at-rest table wins over matching the doc's column count exactly.
 """
+
 from __future__ import annotations
 
 from uuid import UUID

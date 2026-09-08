@@ -1,6 +1,7 @@
 """Per-execution shared runtime state. See docs/12-execution-engine.md
 #12.2/#12.12: one `AsyncHttpClient` and one registry are shared across
 every node in an execution, not rebuilt per node."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -11,7 +12,7 @@ from typing import Any
 from app.core.http_client import AsyncHttpClient
 from app.engine.expressions import ExecutionScope, resolve_parameters
 from app.engine.expressions.scope import ItemView
-from app.engine.secrets import SecretRegistry
+from app.engine.redaction import SecretRegistry
 from app.modules.nodes.base import CredentialBinding, ExecutionInfo, WorkflowInfo
 from app.modules.nodes.descriptors import Item
 from app.modules.nodes.registry import NodeRegistry

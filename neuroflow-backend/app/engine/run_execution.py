@@ -4,6 +4,7 @@ Registered as `app.worker.WorkerSettings.functions`; enqueued by the API
 via `pool.enqueue_job("run_execution", execution_id)` (by name, so the API
 process never imports this module -- see this phase's plan finding #1).
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -20,6 +21,7 @@ from app.engine.context import ExecutionContext
 from app.engine.dag import DAG, GraphValidationError
 from app.engine.events import EventPublisher
 from app.engine.models import NodeResult
+from app.engine.redaction import SecretRegistry
 from app.engine.registry import build_runtime_registry
 from app.engine.scheduler import (
     ExecutionCanceledError,
@@ -27,18 +29,17 @@ from app.engine.scheduler import (
     ExecutionSuspendedError,
     execute_dag,
 )
-from app.engine.secrets import SecretRegistry
 from app.modules.audit.repository import AuditRepository
 from app.modules.audit.service import AuditService
 from app.modules.credentials.decryption import get_decrypted_credential
 from app.modules.credentials.repository import CredentialRepository
-from app.modules.credentials.types import CredentialBinding, get_credential_type
+from app.modules.credentials.type_registry import get_credential_type
 from app.modules.executions.repository import (
     ExecutionDataRepository,
     ExecutionRepository,
     NodeExecutionRepository,
 )
-from app.modules.nodes.base import ExecutionInfo, WorkflowInfo
+from app.modules.nodes.base import CredentialBinding, ExecutionInfo, WorkflowInfo
 from app.modules.nodes.descriptors import Item
 from app.modules.projects.repository import ProjectRepository
 from app.modules.variables.decryption import get_vars_snapshot
@@ -169,7 +170,9 @@ async def run_execution(_ctx: dict[str, Any], execution_id: UUID) -> None:
                 execution,
                 status="error",
                 at=datetime.now(UTC),
-                error={"message": "Workflow, project, or pinned version no longer exists"},
+                error={
+                    "message": "Workflow, project, or pinned version no longer exists"
+                },
             )
             return
 
@@ -264,7 +267,9 @@ async def run_execution(_ctx: dict[str, Any], execution_id: UUID) -> None:
                 "execution.suspended",
                 {
                     "status": "waiting",
-                    "resumeAfter": exc.resume_after.isoformat() if exc.resume_after else None,
+                    "resumeAfter": exc.resume_after.isoformat()
+                    if exc.resume_after
+                    else None,
                 },
             )
             return

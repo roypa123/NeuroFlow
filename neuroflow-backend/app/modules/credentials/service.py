@@ -14,6 +14,7 @@ or completing that same caller's own OAuth handshake) -- they use
 exactly as docs/09-domain-modules.md #9.6 lists them as ordinary
 `CredentialService` methods, distinct from `get_decrypted`.
 """
+
 from __future__ import annotations
 
 import json
@@ -34,9 +35,15 @@ from app.modules.credentials.exceptions import (
     CredentialTypeNotFoundError,
 )
 from app.modules.credentials.models import Credential
-from app.modules.credentials.oauth import build_authorization_url, exchange_code_for_token
+from app.modules.credentials.oauth import (
+    build_authorization_url,
+    exchange_code_for_token,
+)
 from app.modules.credentials.repository import CredentialRepository
-from app.modules.credentials.types import get_credential_type, render_credential_template
+from app.modules.credentials.type_registry import (
+    get_credential_type,
+    render_credential_template,
+)
 from app.modules.projects.models import Project
 from app.modules.projects.repository import ProjectRepository
 from app.modules.projects.service import ProjectService
@@ -74,14 +81,18 @@ class CredentialService:
         return credential, project, role
 
     async def get_role_for_project(self, *, project_id: UUID, user_id: UUID) -> Role:
-        _project, role = await self._projects.get(project_id=project_id, user_id=user_id)
+        _project, role = await self._projects.get(
+            project_id=project_id, user_id=user_id
+        )
         return role
 
     async def list_for_project(
         self, *, project_id: UUID, user_id: UUID, type_: str | None
     ) -> tuple[list[Credential], Role]:
         role = await self.get_role_for_project(project_id=project_id, user_id=user_id)
-        rows = await self._credentials.list_by_project(project_id=project_id, type_=type_)
+        rows = await self._credentials.list_by_project(
+            project_id=project_id, type_=type_
+        )
         return rows, role
 
     def _require_type(self, type_: str) -> None:
@@ -98,7 +109,9 @@ class CredentialService:
         actor_id: UUID,
     ) -> Credential:
         self._require_type(type_)
-        project, _role = await self._projects.get(project_id=project_id, user_id=actor_id)
+        project, _role = await self._projects.get(
+            project_id=project_id, user_id=actor_id
+        )
         blob = encrypt_credential(data, self._master_key)
         credential = await self._credentials.create(
             project_id=project_id,
@@ -131,9 +144,7 @@ class CredentialService:
             # Omitted fields are left unchanged: merge onto the existing
             # decrypted data rather than replacing it outright -- see
             # docs/11-api-design.md #11.10.
-            existing = decrypt_credential(
-                _blob_of(credential), self._master_key
-            )
+            existing = decrypt_credential(_blob_of(credential), self._master_key)
             existing.update(data)
             blob = encrypt_credential(existing, self._master_key)
         await self._credentials.update(credential, name=name, blob=blob)
@@ -195,7 +206,9 @@ class CredentialService:
         state = secrets.token_urlsafe(32)
         await self._redis.set(
             _OAUTH_STATE_KEY.format(state=state),
-            json.dumps({"credentialId": str(credential.id), "redirectUri": redirect_uri}),
+            json.dumps(
+                {"credentialId": str(credential.id), "redirectUri": redirect_uri}
+            ),
             ex=_OAUTH_STATE_TTL_SECONDS,
         )
         return build_authorization_url(

@@ -3,6 +3,7 @@ resolved scope, so a failure is diagnosable from the UI alone -- see
 docs/12-execution-engine.md #12.6: "an expression failure is a node error
 with the offending expression and the resolved scope attached."
 """
+
 from __future__ import annotations
 
 from typing import Any

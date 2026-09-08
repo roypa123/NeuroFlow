@@ -1,4 +1,5 @@
 """Pydantic schemas for variables. See docs/11-api-design.md #11.12."""
+
 from __future__ import annotations
 
 from datetime import datetime

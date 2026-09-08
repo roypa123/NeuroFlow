@@ -3,6 +3,7 @@
 `CredentialRead` structurally has no field that could ever carry secret
 material -- see docs/15-security-and-credentials.md #15.6 item 1.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

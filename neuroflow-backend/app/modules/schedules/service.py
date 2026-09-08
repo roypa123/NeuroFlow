@@ -11,12 +11,14 @@ duplicate scheduler cannot double-fire even if the Redis lock fails. Not
 belt-and-braces theater: double-firing a billing workflow is not a
 recoverable class of bug.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+from arq.connections import ArqRedis
 from croniter import croniter
 from redis.asyncio import Redis
 
@@ -26,7 +28,10 @@ from app.modules.executions.repository import ExecutionRepository
 from app.modules.schedules.exceptions import InvalidCronExpressionError
 from app.modules.schedules.models import Schedule
 from app.modules.schedules.repository import ScheduleRepository
-from app.modules.workflows.repository import WorkflowRepository, WorkflowVersionRepository
+from app.modules.workflows.repository import (
+    WorkflowRepository,
+    WorkflowVersionRepository,
+)
 
 logger = get_logger(__name__)
 
@@ -101,7 +106,7 @@ async def schedule_tick(ctx: dict[str, Any], *_args: Any, **_kwargs: Any) -> Non
     time-triggered run, so the execution is created directly (the same
     actor-free pattern as webhook ingress and sub-workflow calls) rather
     than through `ExecutionService.create_and_enqueue`."""
-    redis: Redis = ctx["redis"]
+    redis: ArqRedis = ctx["redis"]
     if not await try_acquire_tick_lock(redis):
         return
     async with session_scope() as session:
@@ -132,6 +137,8 @@ async def schedule_tick(ctx: dict[str, Any], *_args: Any, **_kwargs: Any) -> Non
                 created_at=datetime.now(UTC),
             )
             logger.info(
-                "schedule.fired", schedule_id=str(schedule.id), execution_id=str(execution.id)
+                "schedule.fired",
+                schedule_id=str(schedule.id),
+                execution_id=str(execution.id),
             )
             await redis.enqueue_job("run_execution", execution.id)

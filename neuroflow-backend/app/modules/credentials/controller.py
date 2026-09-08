@@ -1,5 +1,6 @@
 """Credential orchestration: authorize, call the service, map to response
 schemas. See docs/08-backend-architecture.md #8.1."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -17,7 +18,10 @@ from app.modules.credentials.schemas import (
     OAuthCallbackRequest,
 )
 from app.modules.credentials.service import CredentialService
-from app.modules.credentials.types import CredentialTypeDescriptor, list_credential_types
+from app.modules.credentials.type_registry import (
+    CredentialTypeDescriptor,
+    list_credential_types,
+)
 
 
 def _to_read(credential: Credential) -> CredentialRead:
@@ -91,7 +95,9 @@ class CredentialController:
         )
         require(role, Permission.CREDENTIAL_WRITE, scopes=ctx.scopes)
         await self._service.delete(
-            credential=credential, actor_id=ctx.user_id, organization_id=project.organization_id
+            credential=credential,
+            actor_id=ctx.user_id,
+            organization_id=project.organization_id,
         )
 
     async def test(
@@ -102,7 +108,9 @@ class CredentialController:
         )
         require(role, Permission.CREDENTIAL_WRITE, scopes=ctx.scopes)
         ok, message = await self._service.test(
-            credential=credential, actor_id=ctx.user_id, organization_id=project.organization_id
+            credential=credential,
+            actor_id=ctx.user_id,
+            organization_id=project.organization_id,
         )
         return CredentialTestResult(ok=ok, message=message)
 

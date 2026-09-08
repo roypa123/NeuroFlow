@@ -10,6 +10,7 @@ stays router-reachable, since none of it returns plaintext). Only
 credential requirement, and every call is audited -- see this phase's plan
 finding #1 and `tests/unit/test_credential_boundary.py`.
 """
+
 from __future__ import annotations
 
 from typing import Any

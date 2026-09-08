@@ -2,6 +2,7 @@
 verification. See docs/09-domain-modules.md #9.11 and docs/15-security-and-
 credentials.md #15.9.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -97,7 +98,10 @@ def auth_spec_from_node_params(parameters: dict[str, Any]) -> dict[str, Any] | N
     if mode == "hmac":
         return {"type": "hmac", "secret": parameters.get("hmacSecret", "")}
     if mode == "headerAuth":
-        return {"type": "headerAuth", "headerValue": parameters.get("headerAuthValue", "")}
+        return {
+            "type": "headerAuth",
+            "headerValue": parameters.get("headerAuthValue", ""),
+        }
     return None
 
 
@@ -125,7 +129,10 @@ def verify_signature(
             return False
         if timestamp is not None:
             try:
-                if abs(time.time() - int(timestamp)) > _HMAC_TIMESTAMP_TOLERANCE_SECONDS:
+                if (
+                    abs(time.time() - int(timestamp))
+                    > _HMAC_TIMESTAMP_TOLERANCE_SECONDS
+                ):
                     return False
             except ValueError:
                 return False

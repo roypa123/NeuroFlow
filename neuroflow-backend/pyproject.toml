@@ -44,7 +44,7 @@ plugins = ["pydantic.mypy"]
 exclude = ["alembic/"]
 
 [[tool.mypy.overrides]]
-module = ["arq.*", "testcontainers.*", "factory.*", "passlib.*"]
+module = ["arq.*", "testcontainers.*", "factory.*", "passlib.*", "croniter.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

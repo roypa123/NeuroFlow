@@ -14,6 +14,7 @@ docs/15-security-and-credentials.md #15.7 exists for.
 hit with httpbin.org) -- verified instead against a small local mock
 authorization server. See this phase's plan Scope decisions.
 """
+
 from __future__ import annotations
 
 from typing import Any

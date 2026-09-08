@@ -6,6 +6,7 @@ envelope-encryption ciphertext, key, and nonce. See docs/15-security-and-
 credentials.md #15.6: absence, not masking, is what makes a secret-leak via
 a future `SELECT *` structurally impossible rather than merely unlikely.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

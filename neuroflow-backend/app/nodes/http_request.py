@@ -10,6 +10,7 @@ item 3) is resolved by `app.engine` into `ctx.credentials["credentialId"]`
 before this node runs; the node calls `ctx.authenticated_request` and never
 sees the decrypted value.
 """
+
 from __future__ import annotations
 
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput
@@ -41,7 +42,8 @@ class HttpRequestNode(BaseNode):
         idempotent=False,
         credentials=[
             CredentialRequirement(
-                types=["httpHeaderAuth", "httpBasicAuth", "oauth2Generic"], required=False
+                types=["httpHeaderAuth", "httpBasicAuth", "oauth2Generic"],
+                required=False,
             )
         ],
         properties=[
@@ -50,9 +52,13 @@ class HttpRequestNode(BaseNode):
                 display_name="Authentication",
                 type="credential",
                 type_options={
-                    "credentialTypes": ["httpHeaderAuth", "httpBasicAuth", "oauth2Generic"]
+                    "credentialTypes": [
+                        "httpHeaderAuth",
+                        "httpBasicAuth",
+                        "oauth2Generic",
+                    ]
                 },
-                description="Optional. Applied to the request via the credential's declared auth.",
+                description="Optional. Applied via the credential's declared auth.",
             ),
             NodeProperty(
                 name="method",

@@ -1,5 +1,6 @@
 """Schedule model. See docs/09-domain-modules.md #9.12 and
 docs/10-database-schema.md #10.9."""
+
 from __future__ import annotations
 
 from datetime import datetime

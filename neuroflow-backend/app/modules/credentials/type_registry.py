@@ -8,6 +8,7 @@ auth, HTTP basic auth, and a generic OAuth2 authorization-code flow).
 Vendor-specific types (Slack, Google, Stripe, ...) are Phase 6/7 catalog
 work, not this phase -- see this phase's plan Scope decisions.
 """
+
 from __future__ import annotations
 
 import base64
@@ -90,7 +91,9 @@ _HTTP_HEADER_AUTH = CredentialTypeDescriptor(
     authenticate=AuthenticationSpec(
         type="generic",
         properties={
-            "headers": {"{{ $credentials.headerName }}": "{{ $credentials.headerValue }}"}
+            "headers": {
+                "{{ $credentials.headerName }}": "{{ $credentials.headerValue }}"
+            }
         },
     ),
 )
@@ -99,14 +102,19 @@ _HTTP_BASIC_AUTH = CredentialTypeDescriptor(
     key="httpBasicAuth",
     name="Basic Auth",
     properties=[
-        NodeProperty(name="username", display_name="Username", type="string", required=True),
+        NodeProperty(
+            name="username", display_name="Username", type="string", required=True
+        ),
         NodeProperty(
             name="password", display_name="Password", type="string", required=True
         ),
     ],
     authenticate=AuthenticationSpec(
         type="basic",
-        properties={"usernameField": {"field": "username"}, "passwordField": {"field": "password"}},
+        properties={
+            "usernameField": {"field": "username"},
+            "passwordField": {"field": "password"},
+        },
     ),
 )
 
@@ -115,18 +123,30 @@ _OAUTH2_GENERIC = CredentialTypeDescriptor(
     name="OAuth2 (Generic)",
     properties=[
         NodeProperty(
-            name="authorizationUrl", display_name="Authorization URL", type="string", required=True
+            name="authorizationUrl",
+            display_name="Authorization URL",
+            type="string",
+            required=True,
         ),
-        NodeProperty(name="tokenUrl", display_name="Token URL", type="string", required=True),
-        NodeProperty(name="clientId", display_name="Client ID", type="string", required=True),
         NodeProperty(
-            name="clientSecret", display_name="Client Secret", type="string", required=True
+            name="tokenUrl", display_name="Token URL", type="string", required=True
+        ),
+        NodeProperty(
+            name="clientId", display_name="Client ID", type="string", required=True
+        ),
+        NodeProperty(
+            name="clientSecret",
+            display_name="Client Secret",
+            type="string",
+            required=True,
         ),
         NodeProperty(name="scope", display_name="Scope", type="string", default=""),
     ],
     authenticate=AuthenticationSpec(
         type="generic",
-        properties={"headers": {"Authorization": "=Bearer {{ $credentials.accessToken }}"}},
+        properties={
+            "headers": {"Authorization": "=Bearer {{ $credentials.accessToken }}"}
+        },
     ),
     oauth=OAuth2Spec(),
 )
@@ -164,8 +184,12 @@ def apply_authentication(
     #15.6 item 3."""
     kwargs = dict(request_kwargs)
     if spec.type == "basic":
-        username_field = spec.properties.get("usernameField", {}).get("field", "username")
-        password_field = spec.properties.get("passwordField", {}).get("field", "password")
+        username_field = spec.properties.get("usernameField", {}).get(
+            "field", "username"
+        )
+        password_field = spec.properties.get("passwordField", {}).get(
+            "field", "password"
+        )
         pair = f"{data.get(username_field, '')}:{data.get(password_field, '')}"
         token = base64.b64encode(pair.encode()).decode()
         headers = dict(kwargs.get("headers") or {})
@@ -176,8 +200,8 @@ def apply_authentication(
     for part, pairs in spec.properties.items():
         target = dict(kwargs.get(part) or {})
         for raw_key, raw_value in pairs.items():
-            target[render_credential_template(raw_key, data)] = render_credential_template(
-                raw_value, data
+            target[render_credential_template(raw_key, data)] = (
+                render_credential_template(raw_value, data)
             )
         kwargs[part] = target
     return kwargs

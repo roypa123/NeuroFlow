@@ -7,6 +7,7 @@ already enforces at save time (docs/09-domain-modules.md), but against the
 descriptor catalog -- the two are built from the same source so they never
 disagree, but only the runtime registry can actually execute a node.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

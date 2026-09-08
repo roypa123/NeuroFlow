@@ -9,6 +9,7 @@ version bump -- the Phase 3 placeholder never executed in production (there
 was no engine to call it), so there is no stored-graph compatibility
 concern to preserve.
 """
+
 from __future__ import annotations
 
 from app.engine.code_sandbox import CodeSandboxError, run_code

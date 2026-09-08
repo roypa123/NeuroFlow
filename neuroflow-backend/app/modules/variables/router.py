@@ -1,4 +1,5 @@
 """Variable routes: declarations only. See docs/11-api-design.md #11.12."""
+
 from __future__ import annotations
 
 from typing import Annotated

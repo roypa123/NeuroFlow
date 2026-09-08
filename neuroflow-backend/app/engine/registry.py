@@ -4,6 +4,7 @@ phase's plan finding #5: shares the discovery walk with
 separate call site since the two run at different times for different
 purposes (build-time catalog snapshot vs. runtime execution registry).
 """
+
 from __future__ import annotations
 
 from functools import lru_cache

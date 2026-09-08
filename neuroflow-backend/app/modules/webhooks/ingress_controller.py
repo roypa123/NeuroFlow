@@ -12,6 +12,7 @@ Execution creation goes straight through `ExecutionRepository`, not
 an inbound third-party request, so the workflow is resolved the same
 actor-free way `app.nodes.execute_workflow` resolves a sub-workflow.
 """
+
 from __future__ import annotations
 
 import json
@@ -25,15 +26,24 @@ from app.core.database import session_scope
 from app.core.queue import get_arq_pool
 from app.core.redis import get_redis
 from app.modules.executions.repository import ExecutionRepository
-from app.modules.executions.waiting import load_last_output_items, subscribe, wait_for_finish
+from app.modules.executions.waiting import (
+    load_last_output_items,
+    subscribe,
+    wait_for_finish,
+)
 from app.modules.webhooks.repository import WebhookRepository
 from app.modules.webhooks.service import WebhookService, verify_signature
-from app.modules.workflows.repository import WorkflowRepository, WorkflowVersionRepository
+from app.modules.workflows.repository import (
+    WorkflowRepository,
+    WorkflowVersionRepository,
+)
 
 LAST_NODE_TIMEOUT_SECONDS = 30.0
 
 
-async def handle_webhook_request(request: Request, path: str, *, is_test: bool) -> Response:
+async def handle_webhook_request(
+    request: Request, path: str, *, is_test: bool
+) -> Response:
     raw_body = await request.body()
     headers = {k.lower(): v for k, v in request.headers.items()}
 
@@ -102,7 +112,15 @@ async def handle_webhook_request(request: Request, path: str, *, is_test: bool) 
             content={"executionId": str(execution_id)},
         )
 
-    result_status = await wait_for_finish(pubsub, timeout_seconds=LAST_NODE_TIMEOUT_SECONDS)
-    items = await load_last_output_items(execution_id) if result_status == "success" else []
-    body = items[0].json_ if items else {"executionId": str(execution_id), "status": result_status}
+    result_status = await wait_for_finish(
+        pubsub, timeout_seconds=LAST_NODE_TIMEOUT_SECONDS
+    )
+    items = (
+        await load_last_output_items(execution_id) if result_status == "success" else []
+    )
+    body = (
+        items[0].json_
+        if items
+        else {"executionId": str(execution_id), "status": result_status}
+    )
     return JSONResponse(content=body)

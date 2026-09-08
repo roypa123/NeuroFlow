@@ -7,6 +7,7 @@ branch (e.g. connected solely to an IF node's "false" output when "true"
 was taken) is marked `skipped` instead of waiting forever -- and that skip
 cascades to its own successors the same way.
 """
+
 from __future__ import annotations
 
 import asyncio

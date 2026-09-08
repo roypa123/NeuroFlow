@@ -22,7 +22,10 @@ from redis.asyncio.client import PubSub
 from app.core.database import session_scope
 from app.core.execution_channels import channel_name
 from app.modules.executions.models import Execution
-from app.modules.executions.repository import ExecutionDataRepository, NodeExecutionRepository
+from app.modules.executions.repository import (
+    ExecutionDataRepository,
+    NodeExecutionRepository,
+)
 from app.modules.nodes.descriptors import Item
 
 

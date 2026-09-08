@@ -8,6 +8,7 @@ register` -- the ingress router (`app.modules.webhooks.ingress_router`,
 mounted outside `/api/v1`) is what actually creates the execution, seeding
 this node's `ctx.input_items` from the inbound request body.
 """
+
 from __future__ import annotations
 
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput
@@ -86,7 +87,7 @@ class WebhookTriggerNode(BaseNode):
                     PropertyOption(label="Immediately", value="immediate"),
                     PropertyOption(label="When Last Node Finishes", value="last_node"),
                 ],
-                description="'When a Respond node executes' is a Phase 6 node -- not built yet.",
+                description="'Respond node' mode is a Phase 6 node -- not built yet.",
             ),
         ],
     )

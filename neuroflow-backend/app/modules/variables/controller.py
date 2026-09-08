@@ -6,6 +6,7 @@ member reads; non-viewers write) -- the same judgment call
 `ProjectService`'s docstring makes for the same reason: nothing else needs
 a dedicated `Permission` enum member yet.
 """
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -29,7 +30,9 @@ def _to_read(row: Variable) -> VariableRead:
 
 
 class VariableController:
-    def __init__(self, service: VariableService, organizations: OrganizationService) -> None:
+    def __init__(
+        self, service: VariableService, organizations: OrganizationService
+    ) -> None:
         self._service = service
         self._organizations = organizations
 

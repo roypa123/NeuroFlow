@@ -7,6 +7,7 @@ used as a literal. Once the evaluator exists, values containing `{{ }}`
 will be resolved per item via `ctx.params_for_item`, with no change to this
 node's descriptor.
 """
+
 from __future__ import annotations
 
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput

@@ -1,5 +1,6 @@
 """Manual Trigger -- runs a workflow from the editor. See
 docs/13-node-catalog-and-sdk.md #13.5."""
+
 from __future__ import annotations
 
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput

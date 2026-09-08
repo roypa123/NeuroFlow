@@ -1,5 +1,6 @@
 """SQL access for credentials. No business rules, no decryption -- see
 docs/08-backend-architecture.md #8.1's test for this layer."""
+
 from __future__ import annotations
 
 from datetime import datetime

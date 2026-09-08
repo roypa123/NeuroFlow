@@ -10,6 +10,7 @@ HTML confirmation page for an unauthenticated browser redirect. It is
 declared before `/{credential_id}` so "oauth" is never matched as a
 credential id.
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -27,7 +28,7 @@ from app.modules.credentials.schemas import (
     OAuthAuthorizeResponse,
     OAuthCallbackRequest,
 )
-from app.modules.credentials.types import CredentialTypeDescriptor
+from app.modules.credentials.type_registry import CredentialTypeDescriptor
 
 router = APIRouter(prefix="/credentials", tags=["credentials"])
 credential_types_router = APIRouter(tags=["credentials"])
@@ -35,7 +36,9 @@ credential_types_router = APIRouter(tags=["credentials"])
 ProjectIdQuery = Annotated[UUID, Query(alias="projectId")]
 
 
-@credential_types_router.get("/credential-types", response_model=list[CredentialTypeDescriptor])
+@credential_types_router.get(
+    "/credential-types", response_model=list[CredentialTypeDescriptor]
+)
 async def list_credential_types(
     controller: CredentialControllerDep,
 ) -> list[CredentialTypeDescriptor]:
@@ -70,7 +73,9 @@ async def list_credentials(
 
 @router.post("", response_model=CredentialRead, status_code=status.HTTP_201_CREATED)
 async def create_credential(
-    payload: CredentialCreate, ctx: RequestContextDep, controller: CredentialControllerDep
+    payload: CredentialCreate,
+    ctx: RequestContextDep,
+    controller: CredentialControllerDep,
 ) -> CredentialRead:
     return await controller.create(ctx, payload)
 

@@ -7,10 +7,16 @@ parameters off the graph and calling `ScheduleService.register`; the
 lock-guarded `schedule_tick` arq cron job (`app.modules.schedules.service`)
 is what actually creates executions when a schedule comes due.
 """
+
 from __future__ import annotations
 
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput
-from app.modules.nodes.descriptors import Item, NodeProperty, NodeTypeDescriptor, PortSpec
+from app.modules.nodes.descriptors import (
+    Item,
+    NodeProperty,
+    NodeTypeDescriptor,
+    PortSpec,
+)
 
 
 class ScheduleTriggerNode(BaseNode):
@@ -49,7 +55,7 @@ class ScheduleTriggerNode(BaseNode):
                 display_name="Catch Up Missed Runs",
                 type="boolean",
                 default=False,
-                description="If the worker was down when a run was due, run it once on restart.",
+                description="If the worker was down when due, run once on restart.",
             ),
         ],
     )

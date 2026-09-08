@@ -1,6 +1,7 @@
 """Webhook orchestration for the `/workflows/{id}/webhooks` read/test
 endpoints -- registration itself happens inside `WorkflowService.activate`,
 not here. See docs/08-backend-architecture.md #8.1."""
+
 from __future__ import annotations
 
 from uuid import UUID
