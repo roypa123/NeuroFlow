@@ -54,7 +54,7 @@ export function useExecutionStream(
             const payload = JSON.parse(dataLine.slice('data: '.length)) as ExecutionEvent
             if (lastSequence !== 0 && payload.sequence !== lastSequence + 1) {
               queryClient.invalidateQueries({
-                queryKey: executionKeys.detail(executionId),
+                queryKey: executionKeys.detail(id),
               })
             }
             lastSequence = payload.sequence
@@ -63,7 +63,7 @@ export function useExecutionStream(
         }
       } catch (error) {
         if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          queryClient.invalidateQueries({ queryKey: executionKeys.detail(executionId) })
+          queryClient.invalidateQueries({ queryKey: executionKeys.detail(id) })
         }
       }
     }

@@ -85,8 +85,12 @@ export const router = createBrowserRouter([
   { path: paths.workflows(), element: authed(<WorkflowListPage />) },
   { path: '/workflows/:workflowId', element: authed(<WorkflowEditorPage />) },
   {
+    // Reuses the standalone execution detail page rather than a read-only
+    // canvas replay -- see this phase's plan's Scope decisions (the
+    // canvas-based "run inspection mode" from docs/06-canvas-and-editor.md
+    // #6.11 is deferred; ExecutionDetailPage only needs :executionId).
     path: '/workflows/:workflowId/executions/:executionId',
-    element: authed(<WorkflowEditorPage />),
+    element: authed(<ExecutionDetailPage />),
   },
   { path: paths.agents(), element: authed(<AgentListPage />) },
   { path: '/agents/:agentId', element: authed(<AgentBuilderPage />) },

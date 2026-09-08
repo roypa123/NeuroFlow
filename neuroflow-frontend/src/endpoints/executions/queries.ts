@@ -19,12 +19,20 @@ export function useExecutions(params: Omit<ExecutionListParams, 'cursor'> | null
   })
 }
 
-export function useExecution(id: string | null, options?: { refetchInterval?: number }) {
+const TERMINAL_STATUSES = new Set(['success', 'error', 'canceled'])
+const POLL_INTERVAL_MS = 2000
+
+export function useExecution(id: string | null, options?: { pollWhileActive?: boolean }) {
   return useQuery({
     queryKey: executionKeys.detail(id ?? ''),
     queryFn: () => fetchExecution(id as string),
     enabled: Boolean(id),
-    refetchInterval: options?.refetchInterval,
+    refetchInterval: options?.pollWhileActive
+      ? (query) =>
+          query.state.data && TERMINAL_STATUSES.has(query.state.data.status)
+            ? false
+            : POLL_INTERVAL_MS
+      : undefined,
   })
 }
 
