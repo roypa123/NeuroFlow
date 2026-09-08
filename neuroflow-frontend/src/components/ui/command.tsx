@@ -60,7 +60,10 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        {children}
+        {/* CommandInput/CommandList/CommandItem read cmdk's internal store
+            via context provided by this root -- without it they throw
+            reading `.subscribe` on undefined the instant they mount. */}
+        <Command className="rounded-none! bg-transparent">{children}</Command>
       </DialogContent>
     </Dialog>
   )
