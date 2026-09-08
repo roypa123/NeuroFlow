@@ -1,17 +1,13 @@
 """HTTP Request -- the universal escape hatch. See
 docs/13-node-catalog-and-sdk.md #13.3/#13.5.
 
-Uses `httpx` directly. This is a deliberate, documented placeholder: the
-real runtime's `ctx.http` (SSRF allow/deny policy, response size caps,
-credential redaction -- #13.3) is a Phase 4 engine concern that does not
-exist yet, and no `credentials` requirement is declared on this descriptor
-for the same reason (Phase 5). Nothing invokes `execute()` in production
-today -- there is no engine to call it -- so this is safe as a
-unit-testable stand-in, not a live request path.
+Uses `ctx.http` (the SSRF-guarded client from `app.core.http_client`), per
+docs/13-node-catalog-and-sdk.md #13.3: "a node that reaches for `httpx`
+directly bypasses [the SSRF policy] and MUST fail review." No
+`credentials` requirement is declared on this descriptor yet -- that's a
+Phase 5 concern, since no `credentials` module exists.
 """
 from __future__ import annotations
-
-import httpx
 
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput
 from app.modules.nodes.descriptors import (
@@ -83,25 +79,28 @@ class HttpRequestNode(BaseNode):
     )
 
     async def execute(self, ctx: NodeExecutionContext) -> NodeOutput:
-        params = ctx.params
-        method = params.get("method", "GET")
-        url = params["url"]
-        timeout_ms = params.get("timeout", 30000)
-        body = params.get("body") if params.get("sendBody") else None
-
         results: list[Item] = []
-        async with httpx.AsyncClient(timeout=timeout_ms / 1000) as client:
-            for index, item in enumerate(ctx.input_items or [Item(json={})]):
-                response = await client.request(method, url, json=body)
-                ctx.log("info", f"{method} {url} -> {response.status_code}")
-                try:
-                    payload = response.json()
-                except ValueError:
-                    payload = {"text": response.text}
-                results.append(
-                    Item(
-                        json={"statusCode": response.status_code, "body": payload},
-                        paired_item=item.paired_item or {"item": index},
-                    )
+        for index, item in enumerate(ctx.input_items or [Item(json={})]):
+            params = ctx.params_for_item(index)
+            method = params.get("method", "GET")
+            url = params["url"]
+            timeout_ms = params.get("timeout", 30000)
+            body = params.get("body") if params.get("sendBody") else None
+
+            if ctx.http is None:
+                raise RuntimeError("HTTP Request node requires ctx.http to be set")
+            response = await ctx.http.request(
+                method, url, json=body, timeout=timeout_ms / 1000
+            )
+            ctx.log("info", f"{method} {url} -> {response.status_code}")
+            try:
+                payload = response.json()
+            except ValueError:
+                payload = {"text": response.text}
+            results.append(
+                Item(
+                    json={"statusCode": response.status_code, "body": payload},
+                    paired_item=item.paired_item or {"item": index},
                 )
+            )
         return {"main": [results]}

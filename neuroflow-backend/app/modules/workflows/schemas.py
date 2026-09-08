@@ -7,12 +7,14 @@ state straight through -- see docs/06-canvas-and-editor.md #6.3.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import Field
 
 from app.core.schema import CamelModel
+
+OnErrorPolicy = Literal["stop", "continue", "continueErrorOutput"]
 
 
 class Position(CamelModel):
@@ -27,6 +29,13 @@ class GraphNode(CamelModel):
     name: str | None = None
     position: Position
     parameters: dict[str, Any] = Field(default_factory=dict)
+    # Execution behavior (docs/12-execution-engine.md #12.4). Additive,
+    # defaulted fields -- no version bump to the graph shape needed
+    # (docs/13-node-catalog-and-sdk.md #13.4's rule 1, applied to the graph
+    # document itself).
+    on_error: OnErrorPolicy = "stop"
+    max_tries: int = 3
+    wait_between_tries_ms: int = 1000
 
 
 class GraphEdge(CamelModel):

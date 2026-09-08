@@ -15,32 +15,18 @@ ship without this being re-run.
 """
 from __future__ import annotations
 
-import importlib
-import inspect
 import json
-import pkgutil
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import app.nodes as nodes_package  # noqa: E402
-from app.modules.nodes.base import BaseNode  # noqa: E402
 from app.modules.nodes.registry import NodeRegistry  # noqa: E402
+from app.nodes._discovery import discover_and_register  # noqa: E402
 
 
 def build_registry() -> NodeRegistry:
-    registry = NodeRegistry()
-    for module_info in pkgutil.iter_modules(nodes_package.__path__):
-        module = importlib.import_module(f"{nodes_package.__name__}.{module_info.name}")
-        for _name, obj in inspect.getmembers(module, inspect.isclass):
-            if (
-                issubclass(obj, BaseNode)
-                and obj is not BaseNode
-                and obj.__module__ == module.__name__
-            ):
-                registry.register(obj)
-    return registry
+    return discover_and_register(NodeRegistry())
 
 
 def generate_catalog_json(registry: NodeRegistry) -> str:

@@ -1,23 +1,24 @@
-"""Code -- run a snippet against the input items. See
-docs/13-node-catalog-and-sdk.md #13.5.
+"""Code -- run a JavaScript snippet against the input items. See
+docs/12-execution-engine.md #12.7 and docs/13-node-catalog-and-sdk.md #13.5.
 
-The real sandboxed evaluator is `app/engine`'s job (docs/12-execution-engine.md
-#12.7, Phase 4). This is a deliberately restricted placeholder -- `eval()`
-with an empty builtins dict and only `items`/`json` exposed -- that proves
-the node/descriptor pattern without pretending to be production-safe. As
-with the HTTP Request node, nothing invokes `execute()` in production yet:
-there is no engine to call it.
+Phase 3 shipped this node against a restricted Python `eval()` as an
+explicitly documented placeholder, since no engine existed yet to invoke
+`execute()` at all. Phase 4 replaces that with the real design: a
+subprocess-isolated JavaScript sandbox (`app/engine/code_sandbox.py`). No
+version bump -- the Phase 3 placeholder never executed in production (there
+was no engine to call it), so there is no stored-graph compatibility
+concern to preserve.
 """
 from __future__ import annotations
 
-from typing import Any
-
+from app.engine.code_sandbox import CodeSandboxError, run_code
 from app.modules.nodes.base import BaseNode, NodeExecutionContext, NodeOutput
 from app.modules.nodes.descriptors import (
     Item,
     NodeProperty,
     NodeTypeDescriptor,
     PortSpec,
+    PropertyOption,
 )
 
 
@@ -32,14 +33,24 @@ class CodeNode(BaseNode):
         name="Code",
         group="data",
         category="Core",
-        description="Run a Python expression against the input items.",
+        description="Run a JavaScript snippet against the input items.",
         icon="code",
         color="cat-code",
-        aliases=["python", "script", "function"],
+        aliases=["javascript", "js", "script", "function"],
         inputs=[PortSpec(type="main")],
         outputs=[PortSpec(type="main")],
         idempotent=False,
         properties=[
+            NodeProperty(
+                name="mode",
+                display_name="Mode",
+                type="options",
+                default="allItems",
+                options=[
+                    PropertyOption(label="Run Once for All Items", value="allItems"),
+                    PropertyOption(label="Run Once per Item", value="perItem"),
+                ],
+            ),
             NodeProperty(
                 name="code",
                 display_name="Code",
@@ -47,11 +58,13 @@ class CodeNode(BaseNode):
                 required=True,
                 default="items",
                 description=(
-                    "A Python expression whose value becomes the output. `items` "
-                    "is a list of dicts (the input item JSON); the expression "
-                    "must evaluate to a dict or a list of dicts."
+                    "JavaScript. In 'Run Once for All Items' mode, `items` is an "
+                    "array of the input item JSON and the snippet's value becomes "
+                    "the output. In 'Run Once per Item' mode, `item` is a single "
+                    "item's JSON. The result must be an object or an array of "
+                    "objects."
                 ),
-                type_options={"editorLanguage": "python", "rows": 10},
+                type_options={"editorLanguage": "javascript", "rows": 10},
                 no_data_expression=True,
             ),
         ],
@@ -59,17 +72,20 @@ class CodeNode(BaseNode):
 
     async def execute(self, ctx: NodeExecutionContext) -> NodeOutput:
         code = ctx.params["code"]
+        mode = ctx.params.get("mode", "allItems")
         items = [item.json_ for item in ctx.input_items]
         try:
-            compiled = compile(code, "<code-node>", "eval")
-            result: Any = eval(  # noqa: S307 -- restricted, documented placeholder
-                compiled, {"__builtins__": {}}, {"items": items}
-            )
-        except Exception as exc:  # noqa: BLE001 -- surfaced as a node error, not a crash
+            result = await run_code(code, items=items, mode=mode)
+        except CodeSandboxError as exc:
             raise CodeExecutionError(str(exc)) from exc
 
-        if isinstance(result, dict):
-            result = [result]
-        if not isinstance(result, list):
-            raise CodeExecutionError("Code must return a dict or a list of dicts")
-        return {"main": [[Item(json=row) for row in result]]}
+        if mode == "perItem":
+            if not isinstance(result, list):
+                raise CodeExecutionError("Per-item mode must produce one result per item")
+            rows = result
+        else:
+            rows = [result] if isinstance(result, dict) else result
+
+        if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
+            raise CodeExecutionError("Code must return an object or an array of objects")
+        return {"main": [[Item(json=row) for row in rows]]}
