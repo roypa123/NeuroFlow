@@ -20,7 +20,11 @@ from app.engine.dag import DAG, GraphValidationError
 from app.engine.events import EventPublisher
 from app.engine.models import NodeResult
 from app.engine.registry import build_runtime_registry
-from app.engine.scheduler import ExecutionCanceled, ExecutionFailed, execute_dag
+from app.engine.scheduler import (
+    ExecutionCanceledError,
+    ExecutionFailedError,
+    execute_dag,
+)
 from app.modules.executions.repository import (
     ExecutionDataRepository,
     ExecutionRepository,
@@ -28,7 +32,10 @@ from app.modules.executions.repository import (
 )
 from app.modules.nodes.base import ExecutionInfo, WorkflowInfo
 from app.modules.nodes.descriptors import Item
-from app.modules.workflows.repository import WorkflowRepository, WorkflowVersionRepository
+from app.modules.workflows.repository import (
+    WorkflowRepository,
+    WorkflowVersionRepository,
+)
 from app.modules.workflows.schemas import WorkflowGraph
 
 logger = get_logger(__name__)
@@ -111,14 +118,24 @@ async def run_execution(_ctx: dict[str, Any], execution_id: UUID) -> None:
         try:
             dag = DAG.from_graph(graph, registry)
         except GraphValidationError as exc:
-            error = {"message": str(exc), "code": "execution.invalid_graph", "errors": exc.errors}
-            await execution_repo.finish(execution, status="error", at=datetime.now(UTC), error=error)
-            await publisher.publish("execution.finished", {"status": "error", "error": error})
+            error = {
+                "message": str(exc),
+                "code": "execution.invalid_graph",
+                "errors": exc.errors,
+            }
+            at = datetime.now(UTC)
+            await execution_repo.finish(execution, status="error", at=at, error=error)
+            await publisher.publish(
+                "execution.finished", {"status": "error", "error": error}
+            )
             return
 
         http_client = AsyncHttpClient(timeout=30.0)
+        workflow_info = WorkflowInfo(
+            id=str(workflow.id), name=workflow.name, active=workflow.is_active
+        )
         engine_ctx = ExecutionContext(
-            workflow_info=WorkflowInfo(id=str(workflow.id), name=workflow.name, active=workflow.is_active),
+            workflow_info=workflow_info,
             execution_info=ExecutionInfo(id=str(execution.id), mode=execution.mode),
             registry=registry,
             http_client=http_client,
@@ -144,15 +161,19 @@ async def run_execution(_ctx: dict[str, Any], execution_id: UUID) -> None:
                 trigger_items=[],
                 preloaded=preloaded,
             )
-        except ExecutionCanceled:
-            await execution_repo.finish(execution, status="canceled", at=datetime.now(UTC))
+        except ExecutionCanceledError:
+            await execution_repo.finish(
+                execution, status="canceled", at=datetime.now(UTC)
+            )
             await publisher.publish("execution.finished", {"status": "canceled"})
             return
-        except ExecutionFailed as exc:
+        except ExecutionFailedError as exc:
             await execution_repo.finish(
                 execution, status="error", at=datetime.now(UTC), error=exc.error
             )
-            await publisher.publish("execution.finished", {"status": "error", "error": exc.error})
+            await publisher.publish(
+                "execution.finished", {"status": "error", "error": exc.error}
+            )
             return
         finally:
             await http_client.aclose()

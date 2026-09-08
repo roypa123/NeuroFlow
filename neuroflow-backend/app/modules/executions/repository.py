@@ -119,7 +119,8 @@ class ExecutionRepository:
         execution.finished_at = at
         execution.error = error
         if execution.started_at is not None:
-            execution.duration_ms = int((at - execution.started_at).total_seconds() * 1000)
+            elapsed = (at - execution.started_at).total_seconds()
+            execution.duration_ms = int(elapsed * 1000)
         await self._session.flush()
 
     async def delete(self, execution: Execution) -> None:
@@ -213,7 +214,11 @@ class NodeExecutionRepository:
         return result.scalar_one_or_none()
 
     async def copy_successful(
-        self, *, from_execution_id: UUID, to_execution_id: UUID, up_to_node_id: str | None
+        self,
+        *,
+        from_execution_id: UUID,
+        to_execution_id: UUID,
+        up_to_node_id: str | None,
     ) -> list[NodeExecution]:
         """Used by retry(from_failed_node=True): copies every successful
         node run from the original execution into the new one, pointing at

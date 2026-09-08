@@ -51,7 +51,9 @@ async def list_executions(
 
 @router.get("/stats", response_model=ExecutionStatsResponse)
 async def execution_stats(
-    ctx: RequestContextDep, controller: ExecutionControllerDep, project_id: ProjectIdQuery
+    ctx: RequestContextDep,
+    controller: ExecutionControllerDep,
+    project_id: ProjectIdQuery,
 ) -> ExecutionStatsResponse:
     return await controller.stats(ctx, project_id)
 

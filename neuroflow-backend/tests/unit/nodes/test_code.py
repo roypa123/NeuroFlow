@@ -51,10 +51,9 @@ async def test_per_item_mode_runs_once_per_item() -> None:
 
 async def test_require_is_not_available() -> None:
     node = CodeNode()
-    ctx = NodeExecutionContext(
-        input_items=[],
-        params={"code": "require('fs').readFileSync('/etc/passwd')", "mode": "allItems"},
-    )
+    code = "require('fs').readFileSync('/etc/passwd')"
+    params = {"code": code, "mode": "allItems"}
+    ctx = NodeExecutionContext(input_items=[], params=params)
 
     with pytest.raises(CodeExecutionError):
         await node.execute(ctx)
@@ -62,7 +61,8 @@ async def test_require_is_not_available() -> None:
 
 async def test_non_object_result_is_rejected() -> None:
     node = CodeNode()
-    ctx = NodeExecutionContext(input_items=[], params={"code": "42", "mode": "allItems"})
+    params = {"code": "42", "mode": "allItems"}
+    ctx = NodeExecutionContext(input_items=[], params=params)
 
     with pytest.raises(CodeExecutionError):
         await node.execute(ctx)

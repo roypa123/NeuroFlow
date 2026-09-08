@@ -29,6 +29,13 @@ ignore = [
 "app/main.py" = ["ARG001"]
 # arq's on_startup/on_shutdown callback contract requires `ctx` even when unused.
 "app/worker.py" = ["ARG001"]
+# NullObjectStorage's params exist to satisfy the ObjectStorage protocol,
+# not to be used -- see docs/10-database-schema.md #10.6.
+"app/core/object_storage.py" = ["ARG002"]
+# The module name shadows stdlib `queue`, but it is never imported except
+# as app.core.queue -- no real shadowing risk, same reasoning as
+# app/core/types.py above.
+"app/core/queue.py" = ["A005"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -10,7 +10,9 @@ from pydantic import Field
 from app.core.schema import CamelModel
 from app.modules.workflows.schemas import WorkflowGraph
 
-ExecutionStatus = Literal["queued", "running", "success", "error", "canceled", "waiting"]
+ExecutionStatus = Literal[
+    "queued", "running", "success", "error", "canceled", "waiting"
+]
 ExecutionMode = Literal["manual", "trigger", "webhook", "schedule", "retry", "sub"]
 NodeExecutionStatus = Literal["running", "success", "error", "skipped"]
 

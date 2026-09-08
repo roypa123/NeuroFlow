@@ -28,7 +28,9 @@ class ExecutionContext:
     max_parallel: int = MAX_PARALLEL_NODES
     node_outputs: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
 
-    def scope_for_item(self, input_items: list[Item], index: int | None) -> ExecutionScope:
+    def scope_for_item(
+        self, input_items: list[Item], index: int | None
+    ) -> ExecutionScope:
         if index is not None and 0 <= index < len(input_items):
             current_json = input_items[index].json_
         elif input_items:

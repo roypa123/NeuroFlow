@@ -31,11 +31,11 @@ from app.modules.nodes.descriptors import Item
 from app.modules.workflows.schemas import GraphEdge
 
 
-class ExecutionCanceled(Exception):
+class ExecutionCanceledError(Exception):
     pass
 
 
-class ExecutionFailed(Exception):
+class ExecutionFailedError(Exception):
     def __init__(self, error: dict[str, Any]) -> None:
         super().__init__(error.get("message", "Node execution failed"))
         self.error = error
@@ -103,9 +103,10 @@ async def execute_dag(
 
     while ready:
         if await redis.get(cancel_key(execution_id)):
-            raise ExecutionCanceled
+            raise ExecutionCanceledError
 
-        batch_ids = [ready.popleft() for _ in range(min(len(ready), ctx.max_parallel))]
+        batch_size = min(len(ready), ctx.max_parallel)
+        batch_ids = [ready.popleft() for _ in range(batch_size)]
         for node_id in batch_ids:
             await publisher.publish("node.started", {"nodeId": node_id})
 
@@ -134,6 +135,8 @@ async def execute_dag(
                     "itemsOut": result.items_out,
                 },
             )
-            if result.status == "error" and dag.nodes_by_id[node_id].node.on_error == "stop":
-                raise ExecutionFailed(result.error or {"message": "Node execution failed"})
+            on_error = dag.nodes_by_id[node_id].node.on_error
+            if result.status == "error" and on_error == "stop":
+                default_error = {"message": "Node execution failed"}
+                raise ExecutionFailedError(result.error or default_error)
             process_completion(node_id, result)

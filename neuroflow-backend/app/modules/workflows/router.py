@@ -104,15 +104,17 @@ async def deactivate_workflow(
 
 
 @router.post(
-    "/{workflow_id}/execute", response_model=ExecuteResponse, status_code=status.HTTP_202_ACCEPTED
+    "/{workflow_id}/execute",
+    response_model=ExecuteResponse,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def execute_workflow(
     workflow_id: UUID,
     ctx: RequestContextDep,
     controller: WorkflowControllerDep,
-    payload: ExecuteRequest = ExecuteRequest(),
+    payload: ExecuteRequest | None = None,
 ) -> ExecuteResponse:
-    return await controller.execute(ctx, workflow_id, payload)
+    return await controller.execute(ctx, workflow_id, payload or ExecuteRequest())
 
 
 @router.post(

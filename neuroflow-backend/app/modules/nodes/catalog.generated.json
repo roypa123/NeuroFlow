@@ -5,11 +5,12 @@
     "name": "Code",
     "group": "data",
     "category": "Core",
-    "description": "Run a Python expression against the input items.",
+    "description": "Run a JavaScript snippet against the input items.",
     "icon": "code",
     "color": "cat-code",
     "aliases": [
-      "python",
+      "javascript",
+      "js",
       "script",
       "function"
     ],
@@ -30,18 +31,41 @@
     "credentials": [],
     "properties": [
       {
+        "name": "mode",
+        "displayName": "Mode",
+        "type": "options",
+        "default": "allItems",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Run Once for All Items",
+            "value": "allItems"
+          },
+          {
+            "label": "Run Once per Item",
+            "value": "perItem"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
         "name": "code",
         "displayName": "Code",
         "type": "code",
         "default": "items",
         "required": true,
-        "description": "A Python expression whose value becomes the output. `items` is a list of dicts (the input item JSON); the expression must evaluate to a dict or a list of dicts.",
+        "description": "JavaScript. In 'Run Once for All Items' mode, `items` is an array of the input item JSON and the snippet's value becomes the output. In 'Run Once per Item' mode, `item` is a single item's JSON. The result must be an object or an array of objects.",
         "placeholder": null,
         "options": null,
         "loadOptionsMethod": null,
         "displayOptions": null,
         "typeOptions": {
-          "editorLanguage": "python",
+          "editorLanguage": "javascript",
           "rows": 10
         },
         "noDataExpression": true

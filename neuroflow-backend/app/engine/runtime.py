@@ -39,7 +39,10 @@ def flatten_output(
     for port_type, arrays in node_output.items():
         ports_of_type = [p for p in descriptor.outputs if p.type == port_type]
         for index, items in enumerate(arrays):
-            handle = ports_of_type[index].label or "main" if index < len(ports_of_type) else "main"
+            if index < len(ports_of_type):
+                handle = ports_of_type[index].label or "main"
+            else:
+                handle = "main"
             result.setdefault(handle, []).extend(items)
     return result
 
@@ -81,7 +84,10 @@ async def store_items(
         return row.id
     if len(raw) <= INLINE_THRESHOLD_BYTES:
         row = await data_repo.create_inline(
-            execution_id=execution_id, data=payload, item_count=len(items), size_bytes=len(raw)
+            execution_id=execution_id,
+            data=payload,
+            item_count=len(items),
+            size_bytes=len(raw),
         )
         return row.id
     object_key = f"executions/{execution_id}/{uuid7()}.json"
@@ -99,7 +105,9 @@ def _retry_kwargs(dag_node: DagNode) -> dict[str, Any]:
     node = dag_node.node
     return {
         "stop": tenacity.stop_after_attempt(max(1, node.max_tries)),
-        "wait": tenacity.wait_exponential_jitter(initial=node.wait_between_tries_ms / 1000),
+        "wait": tenacity.wait_exponential_jitter(
+            initial=node.wait_between_tries_ms / 1000
+        ),
         "retry": tenacity.retry_if_exception_type(Exception),
         "reraise": True,
     }
@@ -157,18 +165,31 @@ async def run_node(
     except Exception as exc:  # noqa: BLE001 -- node/expression errors are data, not crashes
         error = build_error_dict(dag_node, exc)
         finished_at = datetime.now(UTC)
+        duration_ms = _ms(started_at, finished_at)
         if node.on_error == "stop":
             await node_exec_repo.finish(
-                node_exec, status="error", at=finished_at, items_in=len(input_items), error=error
+                node_exec,
+                status="error",
+                at=finished_at,
+                items_in=len(input_items),
+                error=error,
             )
-            return NodeResult(status="error", error=error, duration_ms=_ms(started_at, finished_at), items_in=len(input_items))
+            return NodeResult(
+                status="error",
+                error=error,
+                duration_ms=duration_ms,
+                items_in=len(input_items),
+            )
         # continue / continueErrorOutput: emit the error as data rather than
         # failing the whole execution -- docs/12-execution-engine.md #12.4.
         error_item = Item(json={"error": error})
         handle = "error" if node.on_error == "continueErrorOutput" else "main"
         outputs = {handle: [error_item]}
         output_data_id = await store_items(
-            [error_item], execution_id=execution_id, data_repo=data_repo, storage=storage
+            [error_item],
+            execution_id=execution_id,
+            data_repo=data_repo,
+            storage=storage,
         )
         await node_exec_repo.finish(
             node_exec,
@@ -180,14 +201,21 @@ async def run_node(
             output_data_id=output_data_id,
         )
         return NodeResult(
-            status="error", outputs=outputs, error=error, duration_ms=_ms(started_at, finished_at), items_in=len(input_items)
+            status="error",
+            outputs=outputs,
+            error=error,
+            duration_ms=duration_ms,
+            items_in=len(input_items),
         )
 
     flattened = flatten_output(descriptor, output)
     all_output_items = [item for items in flattened.values() for item in items]
     finished_at = datetime.now(UTC)
     output_data_id = await store_items(
-        all_output_items, execution_id=execution_id, data_repo=data_repo, storage=storage
+        all_output_items,
+        execution_id=execution_id,
+        data_repo=data_repo,
+        storage=storage,
     )
     await node_exec_repo.finish(
         node_exec,

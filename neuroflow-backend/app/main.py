@@ -28,6 +28,7 @@ from app.core.middleware import (
     RequestIDMiddleware,
     TimingMiddleware,
 )
+from app.core.queue import close_arq_pool
 from app.core.redis import get_redis
 
 logger = get_logger(__name__)
@@ -74,6 +75,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     _verify_production_secrets(settings)
     logger.info("app.startup", environment=settings.environment)
     yield
+    await close_arq_pool()
     await engine.dispose()
     logger.info("app.shutdown")
 

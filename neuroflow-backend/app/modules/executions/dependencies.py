@@ -56,4 +56,6 @@ def get_execution_controller(
     return ExecutionController(service, WorkflowVersionRepository(session), redis)
 
 
-ExecutionControllerDep = Annotated[ExecutionController, Depends(get_execution_controller)]
+ExecutionControllerDep = Annotated[
+    ExecutionController, Depends(get_execution_controller)
+]

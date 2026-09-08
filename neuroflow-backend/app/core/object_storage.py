@@ -150,9 +150,10 @@ def build_object_storage() -> ObjectStorage:
     settings = get_settings()
     if not settings.s3_endpoint or not settings.s3_bucket or not settings.s3_access_key:
         return NullObjectStorage()
+    secret = settings.s3_secret_key or settings.s3_access_key
     return S3ObjectStorage(
         endpoint=settings.s3_endpoint,
         bucket=settings.s3_bucket,
         access_key=settings.s3_access_key.get_secret_value(),
-        secret_key=(settings.s3_secret_key or settings.s3_access_key).get_secret_value(),
+        secret_key=secret.get_secret_value(),
     )

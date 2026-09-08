@@ -48,7 +48,9 @@ class Execution(Base, UUIDPrimaryKey):
     mode: Mapped[str] = mapped_column(String(20))
     trigger_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
     error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
-    resume_token: Mapped[str | None] = mapped_column(String(64), unique=True, default=None)
+    resume_token: Mapped[str | None] = mapped_column(
+        String(64), unique=True, default=None
+    )
     resume_after: Mapped[datetime | None] = mapped_column(default=None)
     parent_execution_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("executions.id", ondelete="CASCADE"), default=None

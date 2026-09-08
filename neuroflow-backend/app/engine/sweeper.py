@@ -23,18 +23,21 @@ QUEUED_STALE_AFTER = timedelta(minutes=5)
 WATCHDOG_GRACE_SECONDS = 60
 
 
-async def recovery_sweep(ctx: dict[str, Any]) -> None:
+async def recovery_sweep(ctx: dict[str, Any], *_args: Any, **_kwargs: Any) -> None:
     """Re-enqueues `queued` executions older than 5 minutes -- covers a
     Redis flush that lost the original arq job but left the DB row behind."""
+    cutoff = datetime.now(UTC) - QUEUED_STALE_AFTER
     async with session_scope() as session:
         repo = ExecutionRepository(session)
-        stale = await repo.list_stale_queued(older_than=datetime.now(UTC) - QUEUED_STALE_AFTER)
+        stale = await repo.list_stale_queued(older_than=cutoff)
         for execution in stale:
-            logger.warning("execution.recovery_reenqueue", execution_id=str(execution.id))
+            logger.warning(
+                "execution.recovery_reenqueue", execution_id=str(execution.id)
+            )
             await ctx["redis"].enqueue_job("run_execution", execution.id)
 
 
-async def watchdog_sweep(_ctx: dict[str, Any]) -> None:
+async def watchdog_sweep(_ctx: dict[str, Any], *_args: Any, **_kwargs: Any) -> None:
     """Marks executions running longer than their timeout + grace as
     `error` with `code: "execution.timeout"`."""
     cutoff = datetime.now(UTC) - timedelta(
@@ -45,9 +48,10 @@ async def watchdog_sweep(_ctx: dict[str, Any]) -> None:
         stuck = await repo.list_stuck_running(started_before=cutoff)
         for execution in stuck:
             logger.warning("execution.watchdog_timeout", execution_id=str(execution.id))
+            timeout_error = {
+                "message": "Execution exceeded its timeout",
+                "code": "execution.timeout",
+            }
             await repo.finish(
-                execution,
-                status="error",
-                at=datetime.now(UTC),
-                error={"message": "Execution exceeded its timeout", "code": "execution.timeout"},
+                execution, status="error", at=datetime.now(UTC), error=timeout_error
             )

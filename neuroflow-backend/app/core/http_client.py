@@ -82,7 +82,7 @@ class AsyncHttpClient:
         except OSError as exc:
             raise SsrfBlockedError(f"Cannot resolve host: {host}") from exc
         for info in infos:
-            ip = info[4][0]
+            ip = str(info[4][0])
             if not self._is_allowed_ip(ip):
                 raise SsrfBlockedError(f"Blocked address for {host}: {ip}")
 

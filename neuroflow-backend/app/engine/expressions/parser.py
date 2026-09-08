@@ -6,6 +6,7 @@ docs/12-execution-engine.md #12.6 and ADR-010.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -111,7 +112,9 @@ class _Parser:
             return Ternary(cond, then, orelse)
         return cond
 
-    def _binary_level(self, next_level: Any, ops: tuple[str, ...]) -> Node:
+    def _binary_level(
+        self, next_level: Callable[[], Node], ops: tuple[str, ...]
+    ) -> Node:
         left = next_level()
         while self._peek().kind == "PUNCT" and self._peek().value in ops:
             op = self._advance().value
@@ -153,7 +156,9 @@ class _Parser:
                 prop_token = self._advance()
                 if prop_token.kind != "IDENT":
                     raise ParseError(f"Expected property name at {prop_token.position}")
-                if prop_token.value.startswith("__") and prop_token.value.endswith("__"):
+                prop_name = prop_token.value
+                is_dunder = prop_name.startswith("__") and prop_name.endswith("__")
+                if is_dunder:
                     raise ParseError("Access to dunder attributes is not allowed")
                 node = Member(node, prop_token.value)
             elif token.kind == "PUNCT" and token.value == "[":
@@ -179,7 +184,8 @@ class _Parser:
         token = self._peek()
         if token.kind == "NUMBER":
             self._advance()
-            return Literal(float(token.value) if "." in token.value else int(token.value))
+            is_float = "." in token.value
+            return Literal(float(token.value) if is_float else int(token.value))
         if token.kind == "STRING":
             self._advance()
             return Literal(token.value)

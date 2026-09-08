@@ -44,7 +44,9 @@ class DateTimeView:
 class ItemView:
     """One item's `.json`/`.binary`, as seen by `$item(i)`/`$items()`."""
 
-    def __init__(self, json_data: dict[str, Any], binary: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self, json_data: dict[str, Any], binary: dict[str, Any] | None = None
+    ) -> None:
         self.json = json_data
         self.binary = binary or {}
 

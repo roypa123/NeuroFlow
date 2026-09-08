@@ -40,8 +40,8 @@ def _to_summary(execution: Execution) -> ExecutionSummary:
         workflow_id=execution.workflow_id,
         workflow_version_id=execution.workflow_version_id,
         project_id=execution.project_id,
-        status=execution.status,  # type: ignore[arg-type]
-        mode=execution.mode,  # type: ignore[arg-type]
+        status=execution.status,
+        mode=execution.mode,
         started_at=execution.started_at,
         finished_at=execution.finished_at,
         duration_ms=execution.duration_ms,
@@ -55,7 +55,7 @@ def _to_node_read(row: NodeExecution) -> NodeExecutionRead:
         node_id=row.node_id,
         node_name=row.node_name,
         node_type=row.node_type,
-        status=row.status,  # type: ignore[arg-type]
+        status=row.status,
         run_index=row.run_index,
         items_in=row.items_in,
         items_out=row.items_out,
@@ -79,7 +79,9 @@ class ExecutionController:
 
     async def _to_read(self, execution: Execution) -> ExecutionRead:
         version = await self._versions.get_by_id(execution.workflow_version_id)
-        graph = WorkflowGraph.model_validate(version.graph) if version else WorkflowGraph()
+        graph = (
+            WorkflowGraph.model_validate(version.graph) if version else WorkflowGraph()
+        )
         nodes = await self._service.get_nodes(execution.id)
         return ExecutionRead(
             **_to_summary(execution).model_dump(),
@@ -102,7 +104,9 @@ class ExecutionController:
         limit: int | None,
         cursor: str | None,
     ) -> KeysetPage[ExecutionSummary]:
-        role = await self._service.get_role_for_project(project_id=project_id, user_id=ctx.user_id)
+        role = await self._service.get_role_for_project(
+            project_id=project_id, user_id=ctx.user_id
+        )
         require(role, Permission.EXECUTION_READ, scopes=ctx.scopes)
         rows, next_cursor, has_more = await self._service.list_for_project(
             project_id=project_id,
@@ -114,18 +118,24 @@ class ExecutionController:
             cursor_token=cursor,
         )
         return KeysetPage[ExecutionSummary](
-            items=[_to_summary(r) for r in rows], next_cursor=next_cursor, has_more=has_more
+            items=[_to_summary(r) for r in rows],
+            next_cursor=next_cursor,
+            has_more=has_more,
         )
 
     async def get(self, ctx: RequestContext, execution_id: UUID) -> ExecutionRead:
-        execution, _project, role = await self._service.get(execution_id=execution_id, user_id=ctx.user_id)
+        execution, _project, role = await self._service.get(
+            execution_id=execution_id, user_id=ctx.user_id
+        )
         require(role, Permission.EXECUTION_READ, scopes=ctx.scopes)
         return await self._to_read(execution)
 
     async def get_node_data(
         self, ctx: RequestContext, execution_id: UUID, node_id: str
     ) -> NodeDataRead:
-        execution, _project, role = await self._service.get(execution_id=execution_id, user_id=ctx.user_id)
+        execution, _project, role = await self._service.get(
+            execution_id=execution_id, user_id=ctx.user_id
+        )
         require(role, Permission.EXECUTION_DATA_READ, scopes=ctx.scopes)
         input_items, output_items = await self._service.get_node_data(
             execution_id=execution.id, node_id=node_id
@@ -136,17 +146,23 @@ class ExecutionController:
         )
 
     async def cancel(self, ctx: RequestContext, execution_id: UUID) -> ExecutionRead:
-        execution, project, role = await self._service.get(execution_id=execution_id, user_id=ctx.user_id)
+        execution, project, role = await self._service.get(
+            execution_id=execution_id, user_id=ctx.user_id
+        )
         require(role, Permission.WORKFLOW_EXECUTE, scopes=ctx.scopes)
         execution = await self._service.cancel(
-            execution=execution, organization_id=project.organization_id, actor_id=ctx.user_id
+            execution=execution,
+            organization_id=project.organization_id,
+            actor_id=ctx.user_id,
         )
         return await self._to_read(execution)
 
     async def retry(
         self, ctx: RequestContext, execution_id: UUID, payload: RetryRequest
     ) -> ExecutionRead:
-        execution, project, role = await self._service.get(execution_id=execution_id, user_id=ctx.user_id)
+        execution, project, role = await self._service.get(
+            execution_id=execution_id, user_id=ctx.user_id
+        )
         require(role, Permission.WORKFLOW_EXECUTE, scopes=ctx.scopes)
         new_execution = await self._service.retry(
             execution=execution,
@@ -157,16 +173,22 @@ class ExecutionController:
         return await self._to_read(new_execution)
 
     async def delete(self, ctx: RequestContext, execution_id: UUID) -> None:
-        execution, project, role = await self._service.get(execution_id=execution_id, user_id=ctx.user_id)
+        execution, project, role = await self._service.get(
+            execution_id=execution_id, user_id=ctx.user_id
+        )
         require(role, Permission.WORKFLOW_EXECUTE, scopes=ctx.scopes)
         await self._service.delete(
-            execution=execution, organization_id=project.organization_id, actor_id=ctx.user_id
+            execution=execution,
+            organization_id=project.organization_id,
+            actor_id=ctx.user_id,
         )
 
     async def bulk_delete(
         self, ctx: RequestContext, project_id: UUID, payload: BulkDeleteRequest
     ) -> BulkDeleteResponse:
-        role = await self._service.get_role_for_project(project_id=project_id, user_id=ctx.user_id)
+        role = await self._service.get_role_for_project(
+            project_id=project_id, user_id=ctx.user_id
+        )
         require(role, Permission.WORKFLOW_EXECUTE, scopes=ctx.scopes)
         deleted = await self._service.bulk_delete(
             project_id=project_id,
@@ -176,13 +198,22 @@ class ExecutionController:
         )
         return BulkDeleteResponse(deleted=deleted)
 
-    async def stats(self, ctx: RequestContext, project_id: UUID) -> ExecutionStatsResponse:
-        role = await self._service.get_role_for_project(project_id=project_id, user_id=ctx.user_id)
+    async def stats(
+        self, ctx: RequestContext, project_id: UUID
+    ) -> ExecutionStatsResponse:
+        role = await self._service.get_role_for_project(
+            project_id=project_id, user_id=ctx.user_id
+        )
         require(role, Permission.EXECUTION_READ, scopes=ctx.scopes)
-        by_status = await self._service.stats(project_id=project_id, user_id=ctx.user_id)
-        return ExecutionStatsResponse(by_status=by_status, total=sum(by_status.values()))
+        by_status = await self._service.stats(
+            project_id=project_id, user_id=ctx.user_id
+        )
+        total = sum(by_status.values())
+        return ExecutionStatsResponse(by_status=by_status, total=total)
 
-    async def stream(self, ctx: RequestContext, execution_id: UUID) -> AsyncIterator[bytes]:
+    async def stream(
+        self, ctx: RequestContext, execution_id: UUID
+    ) -> AsyncIterator[bytes]:
         # Authorize before subscribing -- an execution the caller can't see
         # must not leak even its existence via the stream.
         _execution, _project, role = await self._service.get(
@@ -207,4 +238,5 @@ class ExecutionController:
                     return
         finally:
             await pubsub.unsubscribe(channel_name(execution_id))
-            await pubsub.aclose()
+            # redis-py's PubSub.aclose has no type stub.
+            await pubsub.aclose()  # type: ignore[no-untyped-call]

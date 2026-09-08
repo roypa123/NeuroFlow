@@ -90,9 +90,13 @@ class ExecutionService:
         return execution
 
     async def get_role_for_project(self, *, project_id: UUID, user_id: UUID) -> Role:
-        return await self._workflows.get_role_for_project(project_id=project_id, user_id=user_id)
+        return await self._workflows.get_role_for_project(
+            project_id=project_id, user_id=user_id
+        )
 
-    async def get(self, *, execution_id: UUID, user_id: UUID) -> tuple[Execution, Project, Role]:
+    async def get(
+        self, *, execution_id: UUID, user_id: UUID
+    ) -> tuple[Execution, Project, Role]:
         execution = await self._executions.get_by_id(execution_id)
         if execution is None:
             raise ExecutionNotFoundError("Execution not found")
@@ -112,7 +116,9 @@ class ExecutionService:
         limit: int | None,
         cursor_token: str | None,
     ) -> tuple[list[Execution], str | None, bool]:
-        await self._workflows.get_role_for_project(project_id=project_id, user_id=user_id)
+        await self._workflows.get_role_for_project(
+            project_id=project_id, user_id=user_id
+        )
         page_limit = clamp_limit(limit)
         cursor = Cursor.decode(cursor_token) if cursor_token else None
         rows = await self._executions.list_with_filters(
@@ -143,18 +149,21 @@ class ExecutionService:
         if data_id is None:
             return []
         row = await self._data.get(data_id)
-        if row is None or row.kind != "inline" or not row.data:
+        if row is None or row.kind != "inline" or not isinstance(row.data, list):
             return []
-        items: list[dict[str, Any]] = row.data
-        return items
+        return [entry for entry in row.data if isinstance(entry, dict)]
 
     async def cancel(
         self, *, execution: Execution, organization_id: UUID, actor_id: UUID
     ) -> Execution:
         if execution.status not in _CANCELABLE_STATUSES:
-            raise ExecutionNotCancelableError(f"Execution is already {execution.status}")
+            raise ExecutionNotCancelableError(
+                f"Execution is already {execution.status}"
+            )
         if execution.status == "queued":
-            await self._executions.finish(execution, status="canceled", at=datetime.now(UTC))
+            await self._executions.finish(
+                execution, status="canceled", at=datetime.now(UTC)
+            )
         else:
             await self._redis.set(cancel_key(execution.id), "1", ex=3600)
         await self._audit.record(
@@ -202,7 +211,10 @@ class ExecutionService:
             action="execution.retried",
             resource_type="execution",
             resource_id=new_execution.id,
-            changes={"retriedFrom": str(execution.id), "fromFailedNode": from_failed_node},
+            changes={
+                "retriedFrom": str(execution.id),
+                "fromFailedNode": from_failed_node,
+            },
         )
         return new_execution
 
@@ -226,11 +238,15 @@ class ExecutionService:
         workflow_id: UUID | None,
         status: str | None,
     ) -> int:
-        await self._workflows.get_role_for_project(project_id=project_id, user_id=user_id)
+        await self._workflows.get_role_for_project(
+            project_id=project_id, user_id=user_id
+        )
         return await self._executions.bulk_delete(
             project_id=project_id, workflow_id=workflow_id, status=status
         )
 
     async def stats(self, *, project_id: UUID, user_id: UUID) -> dict[str, int]:
-        await self._workflows.get_role_for_project(project_id=project_id, user_id=user_id)
+        await self._workflows.get_role_for_project(
+            project_id=project_id, user_id=user_id
+        )
         return await self._executions.stats_by_status(project_id=project_id)

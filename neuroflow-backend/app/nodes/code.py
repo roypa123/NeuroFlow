@@ -81,11 +81,13 @@ class CodeNode(BaseNode):
 
         if mode == "perItem":
             if not isinstance(result, list):
-                raise CodeExecutionError("Per-item mode must produce one result per item")
+                raise CodeExecutionError(
+                    "Per-item mode must produce one result per item"
+                )
             rows = result
         else:
             rows = [result] if isinstance(result, dict) else result
 
         if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
-            raise CodeExecutionError("Code must return an object or an array of objects")
+            raise CodeExecutionError("Code must return an object or array of objects")
         return {"main": [[Item(json=row) for row in rows]]}

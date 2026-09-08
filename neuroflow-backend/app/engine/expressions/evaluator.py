@@ -44,7 +44,9 @@ class _Budget:
     def tick(self, expression: str) -> None:
         self.steps += 1
         if self.steps > MAX_STEPS:
-            raise ExpressionError("Expression exceeded its step budget", expression=expression)
+            raise ExpressionError(
+                "Expression exceeded its step budget", expression=expression
+            )
         if self.steps % 64 == 0 and time.monotonic() > self.deadline:
             raise ExpressionError(
                 f"Expression exceeded the {MAX_DURATION_SECONDS * 1000:.0f} ms budget",
@@ -53,7 +55,7 @@ class _Budget:
 
 
 def _resolve_member(obj: Any, name: str) -> Any:
-    if name == "length" and isinstance(obj, (list, str)):
+    if name == "length" and isinstance(obj, list | str):
         return len(obj)
     if isinstance(obj, dict):
         return obj.get(name)
@@ -66,7 +68,7 @@ def _resolve_index(obj: Any, key: Any) -> Any:
     if isinstance(obj, dict):
         return obj.get(key)
     if isinstance(obj, list):
-        if isinstance(key, (int, float)):
+        if isinstance(key, int | float):
             idx = int(key)
             return obj[idx] if -len(obj) <= idx < len(obj) else None
         return None
@@ -97,7 +99,9 @@ def _eval(node: Node, roots: dict[str, Any], budget: _Budget, expression: str) -
     if isinstance(node, Call):
         callee = _eval(node.callee, roots, budget, expression)
         if not callable(callee):
-            raise ExpressionError("Attempted to call a non-function value", expression=expression)
+            raise ExpressionError(
+                "Attempted to call a non-function value", expression=expression
+            )
         args = [_eval(a, roots, budget, expression) for a in node.args]
         try:
             return callee(*args)
@@ -114,16 +118,22 @@ def _eval(node: Node, roots: dict[str, Any], budget: _Budget, expression: str) -
     if isinstance(node, Binary):
         left = _eval(node.left, roots, budget, expression)
         if node.op == "&&":
-            return left if not _truthy(left) else _eval(node.right, roots, budget, expression)
+            if not _truthy(left):
+                return left
+            return _eval(node.right, roots, budget, expression)
         if node.op == "||":
-            return left if _truthy(left) else _eval(node.right, roots, budget, expression)
+            if _truthy(left):
+                return left
+            return _eval(node.right, roots, budget, expression)
         right = _eval(node.right, roots, budget, expression)
         return _apply_binary(node.op, left, right, expression)
     if isinstance(node, Ternary):
         cond = _eval(node.cond, roots, budget, expression)
         branch = node.then if _truthy(cond) else node.orelse
         return _eval(branch, roots, budget, expression)
-    raise ExpressionError(f"Unsupported expression node: {node!r}", expression=expression)
+    raise ExpressionError(
+        f"Unsupported expression node: {node!r}", expression=expression
+    )
 
 
 def _apply_binary(op: str, left: Any, right: Any, expression: str) -> Any:
@@ -161,7 +171,9 @@ def evaluate_expression(source: str, scope: ExecutionScope) -> Any:
     try:
         ast = parse(source)
     except (ParseError, TokenizeError) as exc:
-        raise ExpressionError(str(exc), expression=source, scope=scope.diagnostic_snapshot()) from exc
+        raise ExpressionError(
+            str(exc), expression=source, scope=scope.diagnostic_snapshot()
+        ) from exc
     try:
         return _eval(ast, scope.roots(), _Budget(), source)
     except ExpressionError as exc:
@@ -175,7 +187,7 @@ def _stringify(value: Any) -> str:
         return ""
     if isinstance(value, bool):
         return "true" if value else "false"
-    if isinstance(value, (dict, list)):
+    if isinstance(value, dict | list):
         return json.dumps(value)
     return str(value)
 
@@ -187,7 +199,8 @@ def _check_result_size(value: Any, *, expression: str) -> None:
         return
     if size > MAX_RESULT_BYTES:
         raise ExpressionError(
-            f"Expression result exceeds the {MAX_RESULT_BYTES} byte cap", expression=expression
+            f"Expression result exceeds the {MAX_RESULT_BYTES} byte cap",
+            expression=expression,
         )
 
 
