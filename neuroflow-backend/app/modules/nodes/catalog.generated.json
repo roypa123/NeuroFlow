@@ -1071,11 +1071,76 @@
         "type": "number",
         "default": 30000,
         "required": false,
-        "description": null,
+        "description": "Request timeout, in milliseconds.",
         "placeholder": null,
         "options": null,
         "loadOptionsMethod": null,
         "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "paginationMode",
+        "displayName": "Pagination",
+        "type": "options",
+        "default": "none",
+        "required": false,
+        "description": "Follow a next-page URL found in each response body.",
+        "placeholder": null,
+        "options": [
+          {
+            "label": "None",
+            "value": "none"
+          },
+          {
+            "label": "Next URL In Body",
+            "value": "nextUrlInBody"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "nextUrlField",
+        "displayName": "Next URL Field",
+        "type": "string",
+        "default": "nextUrl",
+        "required": false,
+        "description": "Dot-path in the response body to the next page's URL.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "paginationMode": [
+              "nextUrlInBody"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "maxRequests",
+        "displayName": "Max Requests",
+        "type": "number",
+        "default": 10,
+        "required": false,
+        "description": "Stop following pages after this many requests.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "paginationMode": [
+              "nextUrlInBody"
+            ]
+          },
+          "hide": null
+        },
         "typeOptions": null,
         "noDataExpression": false
       }

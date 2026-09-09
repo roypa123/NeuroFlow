@@ -13,7 +13,9 @@ from app.modules.workflows.schemas import WorkflowGraph
 ExecutionStatus = Literal[
     "queued", "running", "success", "error", "canceled", "waiting"
 ]
-ExecutionMode = Literal["manual", "trigger", "webhook", "schedule", "retry", "sub"]
+ExecutionMode = Literal[
+    "manual", "trigger", "webhook", "schedule", "retry", "sub", "error"
+]
 NodeExecutionStatus = Literal["running", "success", "error", "skipped", "waiting"]
 
 

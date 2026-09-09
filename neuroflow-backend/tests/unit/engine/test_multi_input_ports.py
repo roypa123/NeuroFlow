@@ -80,9 +80,7 @@ def _edge(
     )
 
 
-async def test_merge_keeps_the_two_branches_separate_regardless_of_completion_order() -> (
-    None
-):
+async def test_merge_keeps_branches_separate_regardless_of_completion_order() -> None:
     engine_ctx = ExecutionContext(
         workflow_info=WorkflowInfo(id="w1", name="WF", active=False),
         execution_info=ExecutionInfo(id="e1", mode="manual"),

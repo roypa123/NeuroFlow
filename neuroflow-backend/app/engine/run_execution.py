@@ -16,6 +16,7 @@ from app.core.database import session_scope
 from app.core.http_client import AsyncHttpClient
 from app.core.logging import get_logger
 from app.core.object_storage import build_object_storage
+from app.core.queue import get_arq_pool
 from app.core.redis import get_redis
 from app.engine.context import ExecutionContext
 from app.engine.dag import DAG, GraphValidationError
@@ -44,6 +45,7 @@ from app.modules.nodes.descriptors import Item
 from app.modules.projects.repository import ProjectRepository
 from app.modules.variables.decryption import get_vars_snapshot
 from app.modules.variables.repository import VariableRepository
+from app.modules.workflows.models import Workflow
 from app.modules.workflows.repository import (
     WorkflowRepository,
     WorkflowVersionRepository,
@@ -132,6 +134,61 @@ async def _resolve_credential_bindings(
             data=data, authenticate=credential_type.authenticate
         )
     return bindings
+
+
+async def _maybe_trigger_error_workflow(
+    *,
+    failed_workflow: Workflow,
+    error: dict[str, Any],
+    source_execution_id: UUID,
+    workflow_repo: WorkflowRepository,
+    version_repo: WorkflowVersionRepository,
+    execution_repo: ExecutionRepository,
+) -> None:
+    """`maybe_trigger_error_workflow` (docs/12-execution-engine.md #12.2)
+    -- see this phase's plan, finding #6. `settings.errorWorkflowId` is an
+    existing, previously-unused seam (`app/modules/workflows/schemas.py`'s
+    `WorkflowSettings`); `error` is already redacted by the caller before
+    it reaches here, so it's safe to pass straight through as the linked
+    workflow's `Error Trigger` input. Same actor-free repository pattern
+    `app/nodes/execute_workflow.py` uses -- there's no actor at this point,
+    only the worker, and the current session/transaction is reused rather
+    than opening a second one."""
+    raw_id = (failed_workflow.settings or {}).get("errorWorkflowId")
+    if not raw_id:
+        return
+    try:
+        error_workflow_id = UUID(str(raw_id))
+    except ValueError:
+        logger.warning(
+            "execution.invalid_error_workflow_id",
+            workflow_id=str(failed_workflow.id),
+            raw_id=raw_id,
+        )
+        return
+
+    error_workflow = await workflow_repo.get_by_id(error_workflow_id)
+    if error_workflow is None or error_workflow.active_version_id is None:
+        return  # deleted, or never activated -- nothing to run
+    version = await version_repo.get_by_id(error_workflow.active_version_id)
+    if version is None:
+        return
+
+    trigger_execution = await execution_repo.create(
+        workflow_id=error_workflow.id,
+        workflow_version_id=version.id,
+        project_id=error_workflow.project_id,
+        mode="error",
+        trigger_data={
+            **error,
+            "sourceExecutionId": str(source_execution_id),
+            "sourceWorkflowId": str(failed_workflow.id),
+        },
+        created_by=None,
+        created_at=datetime.now(UTC),
+    )
+    pool = await get_arq_pool()
+    await pool.enqueue_job("run_execution", trigger_execution.id)
 
 
 async def run_execution(_ctx: dict[str, Any], execution_id: UUID) -> None:
@@ -256,6 +313,14 @@ async def run_execution(_ctx: dict[str, Any], execution_id: UUID) -> None:
             )
             await publisher.publish(
                 "execution.finished", {"status": "error", "error": error}
+            )
+            await _maybe_trigger_error_workflow(
+                failed_workflow=workflow,
+                error=error,
+                source_execution_id=execution_id,
+                workflow_repo=workflow_repo,
+                version_repo=version_repo,
+                execution_repo=execution_repo,
             )
             return
         except ExecutionSuspendedError as exc:

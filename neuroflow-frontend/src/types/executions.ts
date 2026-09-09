@@ -20,6 +20,7 @@ export const executionModeSchema = z.enum([
   'schedule',
   'retry',
   'sub',
+  'error',
 ])
 export type ExecutionMode = z.infer<typeof executionModeSchema>
 
