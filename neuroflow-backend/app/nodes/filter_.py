@@ -52,13 +52,18 @@ class FilterNode(BaseNode):
         idempotent=True,
         properties=[
             NodeProperty(
-                name="value1", display_name="Value 1", type="string", required=True
+                name="value1",
+                display_name="Value 1",
+                type="string",
+                required=True,
+                description="Left-hand side of the comparison.",
             ),
             NodeProperty(
                 name="operator",
                 display_name="Operator",
                 type="options",
                 default="equals",
+                description="How Value 1 and Value 2 are compared.",
                 options=[
                     PropertyOption(label="Equals", value="equals"),
                     PropertyOption(label="Not Equals", value="notEquals"),
@@ -68,7 +73,11 @@ class FilterNode(BaseNode):
                 ],
             ),
             NodeProperty(
-                name="value2", display_name="Value 2", type="string", required=True
+                name="value2",
+                display_name="Value 2",
+                type="string",
+                required=True,
+                description="Right-hand side of the comparison.",
             ),
         ],
     )

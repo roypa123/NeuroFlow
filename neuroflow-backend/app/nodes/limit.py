@@ -34,12 +34,14 @@ class LimitNode(BaseNode):
                 type="number",
                 default=1,
                 required=True,
+                description="Maximum number of items to keep.",
             ),
             NodeProperty(
                 name="keep",
                 display_name="Keep",
                 type="options",
                 default="firstItems",
+                description="Which end of the list to keep items from.",
                 options=[
                     PropertyOption(label="First Items", value="firstItems"),
                     PropertyOption(label="Last Items", value="lastItems"),

@@ -44,6 +44,7 @@ class AggregateNode(BaseNode):
                 display_name="Mode",
                 type="options",
                 default="wholeItems",
+                description="What to collect into the output array.",
                 options=[
                     PropertyOption(label="All Item Data", value="wholeItems"),
                     PropertyOption(label="One Field's Values", value="fieldValues"),
@@ -54,6 +55,7 @@ class AggregateNode(BaseNode):
                 display_name="Source Field",
                 type="string",
                 required=True,
+                description="Field to collect values from, one per input item.",
                 display_options=DisplayOptions(show={"mode": ["fieldValues"]}),
             ),
             NodeProperty(
@@ -62,6 +64,7 @@ class AggregateNode(BaseNode):
                 type="string",
                 default="data",
                 required=True,
+                description="Field on the output item to hold the aggregated array.",
             ),
             NodeProperty(
                 name="batchSize",

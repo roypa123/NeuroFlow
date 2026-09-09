@@ -50,6 +50,7 @@ class DateTimeNode(BaseNode):
                 display_name="Operation",
                 type="options",
                 default="format",
+                description="Which date/time transformation to apply.",
                 options=[
                     PropertyOption(label="Format", value="format"),
                     PropertyOption(label="Add / Subtract", value="addSubtract"),
@@ -61,6 +62,7 @@ class DateTimeNode(BaseNode):
                 name="inputField",
                 display_name="Input Field",
                 type="string",
+                description="Field holding an ISO-8601 string or epoch seconds.",
                 display_options=DisplayOptions(
                     show={"operation": ["format", "addSubtract", "difference"]}
                 ),
@@ -69,6 +71,7 @@ class DateTimeNode(BaseNode):
                 name="compareField",
                 display_name="Compare Field",
                 type="string",
+                description="Field holding the timestamp to diff against.",
                 display_options=DisplayOptions(show={"operation": ["difference"]}),
             ),
             NodeProperty(
@@ -84,6 +87,8 @@ class DateTimeNode(BaseNode):
                 display_name="Unit",
                 type="options",
                 default="days",
+                description="Unit for Amount (Add/Subtract) or the result "
+                "(Difference).",
                 options=[
                     PropertyOption(label=u.title(), value=u) for u in _UNIT_SECONDS
                 ],
@@ -96,6 +101,7 @@ class DateTimeNode(BaseNode):
                 display_name="Output Format (strftime)",
                 type="string",
                 default="%Y-%m-%dT%H:%M:%S%z",
+                description="Python strftime format string for the output.",
                 display_options=DisplayOptions(show={"operation": ["format"]}),
             ),
             NodeProperty(
@@ -104,6 +110,7 @@ class DateTimeNode(BaseNode):
                 type="string",
                 default="result",
                 required=True,
+                description="Field on the output item to write the result to.",
             ),
         ],
     )

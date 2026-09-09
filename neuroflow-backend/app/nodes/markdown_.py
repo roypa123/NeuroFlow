@@ -39,6 +39,7 @@ class MarkdownNode(BaseNode):
                 display_name="Direction",
                 type="options",
                 default="markdownToHtml",
+                description="Which way to convert.",
                 options=[
                     PropertyOption(label="Markdown to HTML", value="markdownToHtml"),
                     PropertyOption(label="HTML to Markdown", value="htmlToMarkdown"),
@@ -49,6 +50,7 @@ class MarkdownNode(BaseNode):
                 display_name="Source Field",
                 type="string",
                 required=True,
+                description="Field on each input item holding the source text.",
             ),
             NodeProperty(
                 name="destinationField",
@@ -56,6 +58,7 @@ class MarkdownNode(BaseNode):
                 type="string",
                 default="converted",
                 required=True,
+                description="Field on the output item to write the converted text to.",
             ),
         ],
     )

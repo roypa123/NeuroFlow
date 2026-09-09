@@ -68,6 +68,8 @@ def _rule_properties(slot: int) -> list[NodeProperty]:
             name=f"value1_{slot}",
             display_name=f"Rule {slot + 1}: Value 1",
             type="string",
+            description="Left-hand side of this rule's comparison. Leave "
+            "unset to skip this rule slot entirely.",
             display_options=show,
         ),
         NodeProperty(
@@ -75,6 +77,7 @@ def _rule_properties(slot: int) -> list[NodeProperty]:
             display_name=f"Rule {slot + 1}: Operator",
             type="options",
             default="equals",
+            description="How Value 1 and Value 2 are compared.",
             options=_OPERATOR_OPTIONS,
             display_options=show,
         ),
@@ -82,6 +85,7 @@ def _rule_properties(slot: int) -> list[NodeProperty]:
             name=f"value2_{slot}",
             display_name=f"Rule {slot + 1}: Value 2",
             type="string",
+            description="Right-hand side of this rule's comparison.",
             display_options=show,
         ),
     ]

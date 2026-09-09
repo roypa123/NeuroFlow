@@ -47,6 +47,7 @@ class HtmlExtractNode(BaseNode):
                 display_name="CSS Selector",
                 type="string",
                 required=True,
+                description="CSS selector for the element(s) to extract.",
                 placeholder="article h1, .price",
             ),
             NodeProperty(
@@ -62,6 +63,8 @@ class HtmlExtractNode(BaseNode):
                 type="string",
                 default="extracted",
                 required=True,
+                description="Field on the output item to write the extracted "
+                "value(s) to.",
             ),
         ],
     )

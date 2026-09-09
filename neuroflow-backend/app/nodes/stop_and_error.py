@@ -38,6 +38,7 @@ class StopAndErrorNode(BaseNode):
                 display_name="Error Message",
                 type="string",
                 required=True,
+                description="Message reported as the node's error.",
                 placeholder="Order total exceeds the approval limit",
             ),
         ],

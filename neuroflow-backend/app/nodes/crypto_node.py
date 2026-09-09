@@ -49,6 +49,7 @@ class CryptoNode(BaseNode):
                 display_name="Action",
                 type="options",
                 default="hash",
+                description="What to do with the input field's value.",
                 options=[
                     PropertyOption(label="Hash", value="hash"),
                     PropertyOption(label="HMAC", value="hmac"),
@@ -62,6 +63,7 @@ class CryptoNode(BaseNode):
                 display_name="Algorithm",
                 type="options",
                 default="sha256",
+                description="Hash algorithm used for Hash/HMAC.",
                 options=[PropertyOption(label=a.upper(), value=a) for a in _ALGORITHMS],
                 display_options=DisplayOptions(show={"action": ["hash", "hmac"]}),
             ),
@@ -69,6 +71,8 @@ class CryptoNode(BaseNode):
                 name="secretField",
                 display_name="Secret",
                 type="string",
+                description="Plain-text HMAC key. Not a credential -- use a "
+                "Credential or secret Variable if this value itself is sensitive.",
                 display_options=DisplayOptions(show={"action": ["hmac"]}),
             ),
             NodeProperty(
@@ -76,6 +80,7 @@ class CryptoNode(BaseNode):
                 display_name="Input Field",
                 type="string",
                 required=True,
+                description="Field on each input item to read the value from.",
                 display_options=DisplayOptions(
                     show={"action": ["hash", "hmac", "base64Encode", "base64Decode"]}
                 ),
@@ -85,6 +90,7 @@ class CryptoNode(BaseNode):
                 display_name="Length",
                 type="number",
                 default=32,
+                description="Number of hex characters to generate.",
                 display_options=DisplayOptions(show={"action": ["randomString"]}),
             ),
             NodeProperty(
@@ -93,6 +99,7 @@ class CryptoNode(BaseNode):
                 type="string",
                 default="result",
                 required=True,
+                description="Field on the output item to write the result to.",
             ),
         ],
     )

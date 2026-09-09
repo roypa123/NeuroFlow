@@ -60,6 +60,7 @@ class PostgresNode(BaseNode):
                 display_name="Credential",
                 type="credential",
                 required=True,
+                description="Postgres connection to run the query against.",
                 type_options={"credentialTypes": ["postgresApi"]},
             ),
             NodeProperty(

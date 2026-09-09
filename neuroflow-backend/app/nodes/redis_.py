@@ -58,6 +58,7 @@ class RedisNode(BaseNode):
                 display_name="Credential",
                 type="credential",
                 required=True,
+                description="Redis connection to run the operation against.",
                 type_options={"credentialTypes": ["redisApi"]},
             ),
             NodeProperty(
@@ -65,6 +66,7 @@ class RedisNode(BaseNode):
                 display_name="Operation",
                 type="options",
                 default="get",
+                description="Redis command to run.",
                 options=[
                     PropertyOption(label="Get", value="get"),
                     PropertyOption(label="Set", value="set"),
@@ -75,11 +77,18 @@ class RedisNode(BaseNode):
                     PropertyOption(label="Delete", value="delete"),
                 ],
             ),
-            NodeProperty(name="key", display_name="Key", type="string", required=True),
+            NodeProperty(
+                name="key",
+                display_name="Key",
+                type="string",
+                required=True,
+                description="Redis key (or channel, for Publish).",
+            ),
             NodeProperty(
                 name="value",
                 display_name="Value",
                 type="string",
+                description="Value to write.",
                 display_options=DisplayOptions(
                     show={"operation": ["set", "publish", "lpush"]}
                 ),
@@ -88,6 +97,7 @@ class RedisNode(BaseNode):
                 name="ttlSeconds",
                 display_name="TTL (seconds)",
                 type="number",
+                description="Expiry, in seconds.",
                 display_options=DisplayOptions(show={"operation": ["set", "expire"]}),
             ),
             NodeProperty(
@@ -96,6 +106,7 @@ class RedisNode(BaseNode):
                 type="string",
                 default="result",
                 required=True,
+                description="Field on the output item to write the result to.",
             ),
         ],
     )

@@ -50,6 +50,7 @@ class MergeNode(BaseNode):
                 display_name="Mode",
                 type="options",
                 default="append",
+                description="How to combine Input 1 and Input 2.",
                 options=[
                     PropertyOption(label="Append", value="append"),
                     PropertyOption(label="Merge by Key", value="mergeByKey"),

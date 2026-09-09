@@ -49,12 +49,14 @@ class SortNode(BaseNode):
                 display_name="Sort Field",
                 type="string",
                 required=True,
+                description="Field to sort items by.",
             ),
             NodeProperty(
                 name="order",
                 display_name="Order",
                 type="options",
                 default="ascending",
+                description="Sort direction.",
                 options=[
                     PropertyOption(label="Ascending", value="ascending"),
                     PropertyOption(label="Descending", value="descending"),
