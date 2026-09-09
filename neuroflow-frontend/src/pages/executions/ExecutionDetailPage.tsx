@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { ArrowLeft, ListChecks, RotateCcw, Square } from 'lucide-react'
+import { ArrowLeft, ListChecks, Play, RotateCcw, Square } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -18,6 +18,7 @@ import {
   useCancelExecution,
   useExecution,
   useNodeData,
+  useResumeExecution,
   useRetryExecution,
 } from '@/endpoints/executions'
 import type { NodeExecutionRead } from '@/types/executions'
@@ -38,6 +39,7 @@ export default function ExecutionDetailPage() {
   })
   const cancelExecution = useCancelExecution()
   const retryExecution = useRetryExecution()
+  const resumeExecution = useResumeExecution()
   const [expandedNodeId, setExpandedNodeId] = useState<string | null>(null)
 
   if (!executionId) return null
@@ -70,6 +72,21 @@ export default function ExecutionDetailPage() {
         >
           {execution.status}
         </Badge>
+        {execution.status === 'waiting' && execution.resumeToken && (
+          <Button
+            size="sm"
+            onClick={() =>
+              resumeExecution.mutate({
+                id: execution.id,
+                resumeToken: execution.resumeToken as string,
+              })
+            }
+            disabled={resumeExecution.isPending}
+          >
+            <Play className="size-4" />
+            Resume now
+          </Button>
+        )}
         {CANCELABLE_STATUSES.has(execution.status) && (
           <Button
             size="sm"

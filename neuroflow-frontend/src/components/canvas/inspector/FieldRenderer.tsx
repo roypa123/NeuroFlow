@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { useCredentials } from '@/endpoints/credentials'
 import type { NodeProperty } from '@/types/node-types'
 import { MonacoField } from './MonacoField'
 
@@ -27,15 +28,25 @@ function isExpression(value: unknown): boolean {
 interface FieldRendererProps {
   property: NodeProperty
   control: Control
+  // Needed only by the 'credential' case, to scope the picker's options --
+  // see docs/15-security-and-credentials.md #15.4 (credentials are
+  // project-scoped). Passed down from Inspector.tsx via the node's
+  // workflow, so every other property type ignores it.
+  projectId?: string | null
 }
 
-export function FieldRenderer({ property, control }: FieldRendererProps) {
+export function FieldRenderer({ property, control, projectId }: FieldRendererProps) {
   return (
     <Controller
       name={property.name}
       control={control}
       render={({ field, fieldState }) => (
-        <FieldBody property={property} field={field} hasError={Boolean(fieldState.error)} />
+        <FieldBody
+          property={property}
+          field={field}
+          hasError={Boolean(fieldState.error)}
+          projectId={projectId ?? null}
+        />
       )}
     />
   )
@@ -45,12 +56,13 @@ interface FieldBodyProps {
   property: NodeProperty
   field: ControllerRenderProps
   hasError: boolean
+  projectId: string | null
 }
 
 // A real named component (not an inline callback) -- react-hook-form's
 // Controller.render is invoked from within Controller's own render pass,
 // so hooks are only safe to call here, in a proper function component.
-function FieldBody({ property, field, hasError }: FieldBodyProps) {
+function FieldBody({ property, field, hasError, projectId }: FieldBodyProps) {
   const canBeExpression = !property.noDataExpression && property.type !== 'boolean'
   const [fxOn, setFxOn] = useState(isExpression(field.value))
 
@@ -245,13 +257,25 @@ function FieldBody({ property, field, hasError }: FieldBodyProps) {
         </Field>
       )
 
-    case 'credential':
+    case 'credential': {
+      const allowedTypes = property.typeOptions?.credentialTypes as string[] | undefined
+      return (
+        <CredentialField
+          property={property}
+          field={field}
+          hasError={hasError}
+          projectId={projectId}
+          allowedTypes={allowedTypes}
+        />
+      )
+    }
+
     case 'resourceLocator':
       return (
         <Field>
           <FieldLabel>{property.displayName}</FieldLabel>
           <p className="rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground">
-            Not available until credentials ship (Phase 5).
+            Not available yet.
           </p>
         </Field>
       )
@@ -272,6 +296,55 @@ function FieldBody({ property, field, hasError }: FieldBodyProps) {
         </Field>
       )
   }
+}
+
+function CredentialField({
+  property,
+  field,
+  hasError,
+  projectId,
+  allowedTypes,
+}: {
+  property: NodeProperty
+  field: ControllerRenderProps
+  hasError: boolean
+  projectId: string | null
+  allowedTypes?: string[]
+}) {
+  const { data: credentials } = useCredentials(projectId)
+  const options = allowedTypes
+    ? (credentials ?? []).filter((c) => allowedTypes.includes(c.type))
+    : (credentials ?? [])
+
+  return (
+    <Field data-invalid={hasError}>
+      <FieldLabel>{property.displayName}</FieldLabel>
+      {/* '' rather than `undefined` when unset -- Base UI's Select locks
+          controlled-vs-uncontrolled on its own first render and never
+          revisits it (@base-ui/utils/useControlled). */}
+      <Select
+        value={typeof field.value === 'string' ? field.value : ''}
+        onValueChange={field.onChange}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder={property.placeholder ?? 'None'} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((credential) => (
+            <SelectItem key={credential.id} value={credential.id}>
+              {credential.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {options.length === 0 && (
+        <FieldDescription>
+          No matching credentials in this project yet -- create one from the Credentials page.
+        </FieldDescription>
+      )}
+      {property.description && <FieldDescription>{property.description}</FieldDescription>}
+    </Field>
+  )
 }
 
 function JsonOrCodeField({

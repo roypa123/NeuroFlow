@@ -22,6 +22,7 @@ export const paths = {
   executionDetail: (executionId: string) => `/executions/${executionId}`,
 
   credentials: () => '/credentials',
+  credentialOAuthCallback: () => '/credentials/oauth/callback',
 
   settingsProfile: () => '/settings/profile',
   settingsMembers: () => '/settings/members',

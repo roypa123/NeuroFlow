@@ -1,5 +1,6 @@
 """Execution orchestration: authorize, call the service, map to response
 schemas. See docs/08-backend-architecture.md #8.1."""
+
 from __future__ import annotations
 
 import json
@@ -92,6 +93,9 @@ class ExecutionController:
             retry_of_execution_id=execution.retry_of_execution_id,
             graph=graph,
             nodes=[_to_node_read(n) for n in nodes],
+            resume_token=execution.resume_token
+            if execution.status == "waiting"
+            else None,
         )
 
     async def list_for_project(
@@ -173,9 +177,7 @@ class ExecutionController:
         )
         return await self._to_read(new_execution)
 
-    async def resume(
-        self, execution_id: UUID, payload: ResumeRequest
-    ) -> ExecutionRead:
+    async def resume(self, execution_id: UUID, payload: ResumeRequest) -> ExecutionRead:
         # No RequestContext: the resume token itself is the authorization
         # (an approval-link recipient need not be a NeuroFlow member) --
         # see ExecutionService.resume's docstring.

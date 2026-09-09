@@ -52,6 +52,13 @@ class ExecutionRead(ExecutionSummary):
     retry_of_execution_id: UUID | None
     graph: WorkflowGraph
     nodes: list[NodeExecutionRead] = Field(default_factory=list)
+    # Only set while status == "waiting". Exposed to anyone who can already
+    # view this specific execution (EXECUTION_READ) -- it is a capability
+    # scoped to this one execution, not an account-wide secret, and lets
+    # the editor offer a "Resume now" action for a workflow under test
+    # rather than requiring a real external approval link every time. See
+    # docs/12-execution-engine.md #12.5.
+    resume_token: str | None = None
 
 
 class ItemRead(CamelModel):

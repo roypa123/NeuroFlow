@@ -71,6 +71,18 @@ export async function retryExecution(
   return executionReadSchema.parse(data)
 }
 
+export async function resumeExecution(
+  id: string,
+  resumeToken: string,
+  payload?: Record<string, unknown>,
+): Promise<ExecutionRead> {
+  const { data } = await apiClient.post(`/executions/${id}/resume`, {
+    resumeToken,
+    payload,
+  })
+  return executionReadSchema.parse(data)
+}
+
 export async function deleteExecution(id: string): Promise<void> {
   await apiClient.delete(`/executions/${id}`)
 }

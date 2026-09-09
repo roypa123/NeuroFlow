@@ -76,6 +76,68 @@
     "maxItems": null
   },
   {
+    "key": "neuroflow.executeWorkflow",
+    "version": 1,
+    "name": "Execute Workflow",
+    "group": "flow",
+    "category": "Core",
+    "description": "Runs another workflow as a sub-workflow.",
+    "icon": "git-branch",
+    "color": "cat-flow",
+    "aliases": [
+      "subworkflow",
+      "call"
+    ],
+    "subtitle": "={{ $parameter.workflowId }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "workflowId",
+        "displayName": "Workflow",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": "The id of the workflow to run.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "waitForCompletion",
+        "displayName": "Wait For Completion",
+        "type": "boolean",
+        "default": true,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": false,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
     "key": "neuroflow.http",
     "version": 1,
     "name": "HTTP Request",
@@ -105,8 +167,37 @@
         "label": null
       }
     ],
-    "credentials": [],
+    "credentials": [
+      {
+        "types": [
+          "httpHeaderAuth",
+          "httpBasicAuth",
+          "oauth2Generic"
+        ],
+        "required": false
+      }
+    ],
     "properties": [
+      {
+        "name": "credentialId",
+        "displayName": "Authentication",
+        "type": "credential",
+        "default": null,
+        "required": false,
+        "description": "Optional. Applied via the credential's declared auth.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": {
+          "credentialTypes": [
+            "httpHeaderAuth",
+            "httpBasicAuth",
+            "oauth2Generic"
+          ]
+        },
+        "noDataExpression": false
+      },
       {
         "name": "method",
         "displayName": "Method",
@@ -384,6 +475,78 @@
     "maxItems": null
   },
   {
+    "key": "neuroflow.scheduleTrigger",
+    "version": 1,
+    "name": "Schedule",
+    "group": "trigger",
+    "category": "Core",
+    "description": "Starts the workflow on a cron schedule.",
+    "icon": "clock",
+    "color": "cat-trigger",
+    "aliases": [
+      "cron",
+      "interval",
+      "timer"
+    ],
+    "subtitle": "={{ $parameter.cron }}",
+    "documentationUrl": null,
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "cron",
+        "displayName": "Cron Expression",
+        "type": "string",
+        "default": "0 * * * *",
+        "required": true,
+        "description": "Standard 5-field cron syntax.",
+        "placeholder": "0 * * * *",
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "timezone",
+        "displayName": "Timezone",
+        "type": "string",
+        "default": "UTC",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "catchUp",
+        "displayName": "Catch Up Missed Runs",
+        "type": "boolean",
+        "default": false,
+        "required": false,
+        "description": "If the worker was down when due, run once on restart.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
     "key": "neuroflow.set",
     "version": 1,
     "name": "Set",
@@ -445,6 +608,256 @@
         "description": "JSON object merged into (or replacing) each item.",
         "placeholder": "{\"status\": \"processed\"}",
         "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.wait",
+    "version": 1,
+    "name": "Wait",
+    "group": "flow",
+    "category": "Core",
+    "description": "Pause for a fixed time, or until resumed externally.",
+    "icon": "clock",
+    "color": "cat-flow",
+    "aliases": [
+      "delay",
+      "pause",
+      "sleep",
+      "approval"
+    ],
+    "subtitle": "={{ $parameter.mode }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "mode",
+        "displayName": "Mode",
+        "type": "options",
+        "default": "duration",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "For a duration",
+            "value": "duration"
+          },
+          {
+            "label": "Until resumed (webhook/approval)",
+            "value": "webhook"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "durationSeconds",
+        "displayName": "Duration (seconds)",
+        "type": "number",
+        "default": 60,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "mode": [
+              "duration"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": false,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.webhookTrigger",
+    "version": 1,
+    "name": "Webhook",
+    "group": "trigger",
+    "category": "Core",
+    "description": "Starts the workflow when an HTTP request hits its URL.",
+    "icon": "webhook",
+    "color": "cat-trigger",
+    "aliases": [
+      "http trigger",
+      "inbound"
+    ],
+    "subtitle": "={{ $parameter.method }} /webhook/{{ $parameter.path }}",
+    "documentationUrl": null,
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "path",
+        "displayName": "Path",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": "Left blank to generate a random UUID path.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "method",
+        "displayName": "Method",
+        "type": "options",
+        "default": "POST",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "GET",
+            "value": "GET"
+          },
+          {
+            "label": "POST",
+            "value": "POST"
+          },
+          {
+            "label": "PUT",
+            "value": "PUT"
+          },
+          {
+            "label": "PATCH",
+            "value": "PATCH"
+          },
+          {
+            "label": "DELETE",
+            "value": "DELETE"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "authMode",
+        "displayName": "Authentication",
+        "type": "options",
+        "default": "none",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "None",
+            "value": "none"
+          },
+          {
+            "label": "Header Auth",
+            "value": "headerAuth"
+          },
+          {
+            "label": "HMAC Signature",
+            "value": "hmac"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "hmacSecret",
+        "displayName": "HMAC Secret",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "authMode": [
+              "hmac"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "headerAuthValue",
+        "displayName": "Expected Header Value",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "authMode": [
+              "headerAuth"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "responseMode",
+        "displayName": "Response",
+        "type": "options",
+        "default": "immediate",
+        "required": false,
+        "description": "'Respond node' mode is a Phase 6 node -- not built yet.",
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Immediately",
+            "value": "immediate"
+          },
+          {
+            "label": "When Last Node Finishes",
+            "value": "last_node"
+          }
+        ],
         "loadOptionsMethod": null,
         "displayOptions": null,
         "typeOptions": null,

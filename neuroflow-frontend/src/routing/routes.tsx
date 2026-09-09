@@ -21,6 +21,7 @@ const AgentBuilderPage = lazy(() => import('@/pages/agents/AgentBuilderPage'))
 const ExecutionListPage = lazy(() => import('@/pages/executions/ExecutionListPage'))
 const ExecutionDetailPage = lazy(() => import('@/pages/executions/ExecutionDetailPage'))
 const CredentialListPage = lazy(() => import('@/pages/credentials/CredentialListPage'))
+const OAuthCallbackPage = lazy(() => import('@/pages/credentials/OAuthCallbackPage'))
 const ProfilePage = lazy(() => import('@/pages/settings/ProfilePage'))
 const MembersPage = lazy(() => import('@/pages/settings/MembersPage'))
 const ApiKeysPage = lazy(() => import('@/pages/settings/ApiKeysPage'))
@@ -97,6 +98,14 @@ export const router = createBrowserRouter([
   { path: paths.executions(), element: authed(<ExecutionListPage />) },
   { path: '/executions/:executionId', element: authed(<ExecutionDetailPage />) },
   { path: paths.credentials(), element: authed(<CredentialListPage />) },
+  {
+    // No RequireAuth: the OAuth provider's redirect opens a fresh popup
+    // window with no in-memory access token (docs/15-security-and-
+    // credentials.md #15.2) -- completion is authorized by the `state`
+    // token alone, same as the backend endpoint it calls.
+    path: paths.credentialOAuthCallback(),
+    element: withSuspense(<OAuthCallbackPage />),
+  },
   { path: paths.settingsProfile(), element: settingsPage(<ProfilePage />) },
   { path: paths.settingsMembers(), element: settingsPage(<MembersPage />) },
   { path: paths.settingsApiKeys(), element: settingsPage(<ApiKeysPage />) },

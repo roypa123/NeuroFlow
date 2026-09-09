@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useExecution, useNodeData } from '@/endpoints/executions'
 import { useNodeTypeDescriptor } from '@/endpoints/node-types'
+import { useWorkflow } from '@/endpoints/workflows'
 import { useUiStore } from '@/store/ui-store'
 import { useCanvasStore } from '@/store/canvas-store'
 import { useExecutionStore, useNodeRunSummary } from '@/store/execution-store'
 import { DataView } from './DataView'
 import { evaluateDisplayOptions, buildParameterSchema } from './schema'
 import { FieldRenderer } from './FieldRenderer'
+import { WebhookUrlPanel } from './WebhookUrlPanel'
 
 // The inspector's Params tab -- docs/06-canvas-and-editor.md #6.9. Input/
 // Output show the selected node's data from the execution currently being
@@ -22,6 +24,8 @@ import { FieldRenderer } from './FieldRenderer'
 const DEBOUNCE_MS = 300
 
 export function Inspector() {
+  const workflowId = useCanvasStore((s) => s.workflowId)
+  const { data: workflow } = useWorkflow(workflowId)
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId)
   const node = useCanvasStore((s) => s.nodes.find((n) => n.id === s.selectedNodeId))
   const updateNodeParameters = useCanvasStore((s) => s.updateNodeParameters)
@@ -128,11 +132,23 @@ export function Inspector() {
           )}
         </TabsContent>
         <TabsContent value="params" className="flex-1 space-y-4 overflow-y-auto p-4">
+          {node.data.nodeTypeKey === 'neuroflow.webhookTrigger' && workflowId && (
+            <WebhookUrlPanel
+              workflowId={workflowId}
+              nodeId={node.id}
+              isActive={workflow?.isActive ?? false}
+            />
+          )}
           {visibleProperties.length === 0 ? (
             <p className="text-sm text-muted-foreground">This node has no parameters.</p>
           ) : (
             visibleProperties.map((property) => (
-              <FieldRenderer key={property.name} property={property} control={form.control} />
+              <FieldRenderer
+                key={property.name}
+                property={property}
+                control={form.control}
+                projectId={workflow?.projectId ?? null}
+              />
             ))
           )}
         </TabsContent>

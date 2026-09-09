@@ -10,6 +10,7 @@ export {
   useCancelExecution,
   useDeleteExecution,
   useExecuteWorkflow,
+  useResumeExecution,
   useRetryExecution,
 } from './mutations'
 export { useExecutionStream } from './stream'

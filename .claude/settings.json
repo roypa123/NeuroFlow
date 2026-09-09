@@ -10,7 +10,11 @@
       "Read(//c/Users/Server/AppData/Local/Temp/claude/e--ROY2-neuroflow/de4d544c-1d1e-4bcf-a097-d63369fd8da4/scratchpad/**)",
       "Bash(.venv/Scripts/python.exe -m alembic downgrade -1)",
       "Bash(taskkill //PID 13812 //F)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(.venv/Scripts/python.exe -m pytest -q tests/unit)",
+      "Bash(.venv/Scripts/python.exe -m alembic current)",
+      "Bash(.venv/Scripts/python.exe -m mypy --strict app tests/unit/modules tests/unit/test_credential_boundary.py tests/unit/engine/test_suspension.py tests/unit/engine/test_redaction.py tests/unit/nodes/test_wait.py)",
+      "Bash(.venv/Scripts/python.exe -m ruff check app tests)"
     ]
   }
 }

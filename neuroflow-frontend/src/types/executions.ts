@@ -23,7 +23,13 @@ export const executionModeSchema = z.enum([
 ])
 export type ExecutionMode = z.infer<typeof executionModeSchema>
 
-export const nodeExecutionStatusSchema = z.enum(['running', 'success', 'error', 'skipped'])
+export const nodeExecutionStatusSchema = z.enum([
+  'running',
+  'success',
+  'error',
+  'skipped',
+  'waiting',
+])
 export type NodeExecutionStatus = z.infer<typeof nodeExecutionStatusSchema>
 
 export const executionSummarySchema = z.object({
@@ -74,6 +80,9 @@ export const executionReadSchema = executionSummarySchema.extend({
   retryOfExecutionId: z.string().nullable(),
   graph: workflowGraphSchema,
   nodes: z.array(nodeExecutionReadSchema),
+  // Only set while status === 'waiting' -- see docs/12-execution-engine.md
+  // #12.5 and ExecutionRead's backend docstring.
+  resumeToken: z.string().nullable().optional(),
 })
 export type ExecutionRead = z.infer<typeof executionReadSchema>
 

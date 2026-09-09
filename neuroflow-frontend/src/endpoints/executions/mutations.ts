@@ -1,6 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { executionKeys } from './keys'
-import { cancelExecution, deleteExecution, executeWorkflow, retryExecution } from './requests'
+import {
+  cancelExecution,
+  deleteExecution,
+  executeWorkflow,
+  resumeExecution,
+  retryExecution,
+} from './requests'
 
 export function useExecuteWorkflow(workflowId: string) {
   return useMutation({
@@ -25,6 +31,25 @@ export function useRetryExecution() {
     mutationFn: ({ id, fromFailedNode }: { id: string; fromFailedNode?: boolean }) =>
       retryExecution(id, fromFailedNode),
     onSuccess: () => qc.invalidateQueries({ queryKey: executionKeys.all }),
+  })
+}
+
+export function useResumeExecution() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      resumeToken,
+      payload,
+    }: {
+      id: string
+      resumeToken: string
+      payload?: Record<string, unknown>
+    }) => resumeExecution(id, resumeToken, payload),
+    onSuccess: (data) => {
+      qc.setQueryData(executionKeys.detail(data.id), data)
+      qc.invalidateQueries({ queryKey: executionKeys.all })
+    },
   })
 }
 
