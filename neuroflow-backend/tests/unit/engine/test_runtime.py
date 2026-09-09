@@ -124,7 +124,7 @@ def _dag_node(node_type: str, **overrides: Any) -> DagNode:
 async def _run(dag_node: DagNode, ctx: ExecutionContext) -> Any:
     return await run_node(
         dag_node,
-        [],
+        {},
         ctx,
         execution_id=uuid4(),
         node_exec_repo=_FakeNodeExecRepo(),  # type: ignore[arg-type]

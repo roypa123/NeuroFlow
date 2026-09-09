@@ -59,7 +59,7 @@ export function NodeChrome({
   const title = data.label || descriptor?.name || data.nodeTypeKey
   const subtitle = resolveSubtitle(descriptor?.subtitle, data.parameters)
   const outputs = descriptor?.outputs ?? [{ type: 'main', label: null }]
-  const hasInput = (descriptor?.inputs.length ?? 1) > 0
+  const inputs = descriptor?.inputs ?? [{ type: 'main', label: null }]
   const run = useNodeRunSummary(id)
   const status = run?.status ?? 'idle'
   const setActiveInspectorTab = useUiStore((s) => s.setActiveInspectorTab)
@@ -77,14 +77,22 @@ export function NodeChrome({
         selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
       )}
     >
-      {hasInput && (
+      {inputs.map((input, index) => (
         <Handle
-          id="main"
+          key={input.label ?? `main-${index}`}
+          id={input.label ?? 'main'}
           type="target"
           position={Position.Left}
+          style={{ top: outputHandleTop(index, inputs.length) }}
           className="!size-3 !border-2 !border-background !bg-muted-foreground"
-        />
-      )}
+        >
+          {shape !== 'trigger' && inputs.length > 1 && input.label && (
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-muted-foreground">
+              {input.label}
+            </span>
+          )}
+        </Handle>
+      ))}
       <div className="flex items-center gap-2 overflow-hidden">
         <div
           className="flex size-8 shrink-0 items-center justify-center rounded-md"

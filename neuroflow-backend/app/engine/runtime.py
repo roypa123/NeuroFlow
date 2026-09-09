@@ -131,7 +131,7 @@ def _retry_kwargs(dag_node: DagNode) -> dict[str, Any]:
 
 async def run_node(
     dag_node: DagNode,
-    input_items: list[Item],
+    inputs_by_port: dict[str, list[Item]],
     ctx: ExecutionContext,
     *,
     execution_id: UUID,
@@ -142,6 +142,12 @@ async def run_node(
     node = dag_node.node
     descriptor = dag_node.descriptor
     node_cls = ctx.registry.get(node.type, node.type_version)
+    # Flattened view of every input port's items, in port-iteration order.
+    # Every existing single-input node (and the resolver, item counts, etc.)
+    # keeps working unchanged; only a node that declares 2+ input ports
+    # (Merge, Compare Datasets) reads `ctx.input_items_by_port` instead --
+    # see this phase's plan, finding #2.
+    input_items = [item for items in inputs_by_port.values() for item in items]
 
     started_at = datetime.now(UTC)
     node_exec = await node_exec_repo.create(
@@ -161,6 +167,7 @@ async def run_node(
         binding = ctx.credential_bindings.get(node.id)
         node_ctx = NodeExecutionContext(
             input_items=input_items,
+            input_items_by_port=inputs_by_port,
             params=params0,
             http=ctx.http_client,
             credentials={"credentialId": binding} if binding is not None else {},

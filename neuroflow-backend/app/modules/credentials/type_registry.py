@@ -61,10 +61,16 @@ class OAuth2Spec(CamelModel):
 
 
 class CredentialTypeDescriptor(CamelModel):
+    """`authenticate` is optional because not every credential type injects
+    into an outbound HTTP request -- a database credential (`postgresApi`,
+    `redisApi`) is consumed by a node opening its own connection from the
+    raw decrypted fields (`CredentialBinding.data`), never via
+    `ctx.authenticated_request`. See this phase's plan, finding #3."""
+
     key: str
     name: str
     properties: list[NodeProperty] = Field(default_factory=list)
-    authenticate: AuthenticationSpec
+    authenticate: AuthenticationSpec | None = None
     test: CredentialTestSpec | None = None
     oauth: OAuth2Spec | None = None
 
@@ -151,8 +157,61 @@ _OAUTH2_GENERIC = CredentialTypeDescriptor(
     oauth=OAuth2Spec(),
 )
 
+_POSTGRES_API = CredentialTypeDescriptor(
+    key="postgresApi",
+    name="Postgres",
+    properties=[
+        NodeProperty(name="host", display_name="Host", type="string", required=True),
+        NodeProperty(
+            name="port", display_name="Port", type="number", default=5432, required=True
+        ),
+        NodeProperty(
+            name="database", display_name="Database", type="string", required=True
+        ),
+        NodeProperty(name="user", display_name="User", type="string", required=True),
+        NodeProperty(
+            name="password",
+            display_name="Password",
+            type="string",
+            required=True,
+            description="Stored encrypted. Never shown again after saving.",
+        ),
+        NodeProperty(name="ssl", display_name="Use SSL", type="boolean", default=False),
+    ],
+    # No `authenticate` -- the Postgres node opens its own connection from
+    # `CredentialBinding.data` directly. See finding #3.
+)
+
+_REDIS_API = CredentialTypeDescriptor(
+    key="redisApi",
+    name="Redis",
+    properties=[
+        NodeProperty(name="host", display_name="Host", type="string", required=True),
+        NodeProperty(
+            name="port", display_name="Port", type="number", default=6379, required=True
+        ),
+        NodeProperty(
+            name="password",
+            display_name="Password",
+            type="string",
+            description="Stored encrypted. Never shown again after saving.",
+        ),
+        NodeProperty(
+            name="db", display_name="Database Index", type="number", default=0
+        ),
+        NodeProperty(name="tls", display_name="Use TLS", type="boolean", default=False),
+    ],
+)
+
 _BUILTIN_TYPES: dict[str, CredentialTypeDescriptor] = {
-    d.key: d for d in (_HTTP_HEADER_AUTH, _HTTP_BASIC_AUTH, _OAUTH2_GENERIC)
+    d.key: d
+    for d in (
+        _HTTP_HEADER_AUTH,
+        _HTTP_BASIC_AUTH,
+        _OAUTH2_GENERIC,
+        _POSTGRES_API,
+        _REDIS_API,
+    )
 }
 
 

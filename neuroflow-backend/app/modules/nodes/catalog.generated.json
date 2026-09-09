@@ -1,5 +1,111 @@
 [
   {
+    "key": "neuroflow.aggregate",
+    "version": 1,
+    "name": "Aggregate",
+    "group": "data",
+    "category": "Core",
+    "description": "Combines all items into one array field.",
+    "icon": "layers",
+    "color": "cat-data",
+    "aliases": [
+      "combine",
+      "collect"
+    ],
+    "subtitle": "={{ $parameter.mode }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "mode",
+        "displayName": "Mode",
+        "type": "options",
+        "default": "wholeItems",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "All Item Data",
+            "value": "wholeItems"
+          },
+          {
+            "label": "One Field's Values",
+            "value": "fieldValues"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "sourceField",
+        "displayName": "Source Field",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "mode": [
+              "fieldValues"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "destinationField",
+        "displayName": "Destination Field",
+        "type": "string",
+        "default": "data",
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "batchSize",
+        "displayName": "Batch Size",
+        "type": "number",
+        "default": 0,
+        "required": false,
+        "description": "Split into multiple output items of this many aggregated rows each. 0 means one output item for everything.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
     "key": "neuroflow.code",
     "version": 1,
     "name": "Code",
@@ -76,6 +182,486 @@
     "maxItems": null
   },
   {
+    "key": "neuroflow.compareDatasets",
+    "version": 1,
+    "name": "Compare Datasets",
+    "group": "data",
+    "category": "Core",
+    "description": "Diffs two inputs by a key field.",
+    "icon": "git-compare",
+    "color": "cat-data",
+    "aliases": [
+      "diff"
+    ],
+    "subtitle": "={{ $parameter.keyField }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": "Input A"
+      },
+      {
+        "type": "main",
+        "label": "Input B"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": "onlyInA"
+      },
+      {
+        "type": "main",
+        "label": "onlyInB"
+      },
+      {
+        "type": "main",
+        "label": "inBoth"
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "keyField",
+        "displayName": "Key Field",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": "Field present on both inputs to match items by.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.crypto",
+    "version": 1,
+    "name": "Crypto",
+    "group": "data",
+    "category": "Core",
+    "description": "Hashes, signs, encodes, or generates random values.",
+    "icon": "lock-keyhole",
+    "color": "cat-data",
+    "aliases": [
+      "hash",
+      "hmac",
+      "base64"
+    ],
+    "subtitle": "={{ $parameter.action }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "action",
+        "displayName": "Action",
+        "type": "options",
+        "default": "hash",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Hash",
+            "value": "hash"
+          },
+          {
+            "label": "HMAC",
+            "value": "hmac"
+          },
+          {
+            "label": "Base64 Encode",
+            "value": "base64Encode"
+          },
+          {
+            "label": "Base64 Decode",
+            "value": "base64Decode"
+          },
+          {
+            "label": "Random String",
+            "value": "randomString"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "algorithm",
+        "displayName": "Algorithm",
+        "type": "options",
+        "default": "sha256",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "MD5",
+            "value": "md5"
+          },
+          {
+            "label": "SHA1",
+            "value": "sha1"
+          },
+          {
+            "label": "SHA256",
+            "value": "sha256"
+          },
+          {
+            "label": "SHA512",
+            "value": "sha512"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "action": [
+              "hash",
+              "hmac"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "secretField",
+        "displayName": "Secret",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "action": [
+              "hmac"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "inputField",
+        "displayName": "Input Field",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "action": [
+              "hash",
+              "hmac",
+              "base64Encode",
+              "base64Decode"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "length",
+        "displayName": "Length",
+        "type": "number",
+        "default": 32,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "action": [
+              "randomString"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "destinationField",
+        "displayName": "Destination Field",
+        "type": "string",
+        "default": "result",
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.dateTime",
+    "version": 1,
+    "name": "Date & Time",
+    "group": "data",
+    "category": "Core",
+    "description": "Formats, shifts, or diffs date/time values.",
+    "icon": "calendar-clock",
+    "color": "cat-data",
+    "aliases": [
+      "date",
+      "time"
+    ],
+    "subtitle": "={{ $parameter.operation }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "operation",
+        "displayName": "Operation",
+        "type": "options",
+        "default": "format",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Format",
+            "value": "format"
+          },
+          {
+            "label": "Add / Subtract",
+            "value": "addSubtract"
+          },
+          {
+            "label": "Difference",
+            "value": "difference"
+          },
+          {
+            "label": "Now",
+            "value": "now"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "inputField",
+        "displayName": "Input Field",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "operation": [
+              "format",
+              "addSubtract",
+              "difference"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "compareField",
+        "displayName": "Compare Field",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "operation": [
+              "difference"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "amount",
+        "displayName": "Amount",
+        "type": "number",
+        "default": 0,
+        "required": false,
+        "description": "Negative to subtract.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "operation": [
+              "addSubtract"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "unit",
+        "displayName": "Unit",
+        "type": "options",
+        "default": "days",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Seconds",
+            "value": "seconds"
+          },
+          {
+            "label": "Minutes",
+            "value": "minutes"
+          },
+          {
+            "label": "Hours",
+            "value": "hours"
+          },
+          {
+            "label": "Days",
+            "value": "days"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "operation": [
+              "addSubtract",
+              "difference"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "format",
+        "displayName": "Output Format (strftime)",
+        "type": "string",
+        "default": "%Y-%m-%dT%H:%M:%S%z",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "operation": [
+              "format"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "destinationField",
+        "displayName": "Destination Field",
+        "type": "string",
+        "default": "result",
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.errorTrigger",
+    "version": 1,
+    "name": "Error Trigger",
+    "group": "trigger",
+    "category": "Core",
+    "description": "Runs this workflow when a linked workflow fails.",
+    "icon": "octagon-alert",
+    "color": "cat-trigger",
+    "aliases": [
+      "on error",
+      "error workflow"
+    ],
+    "subtitle": null,
+    "documentationUrl": null,
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
     "key": "neuroflow.executeWorkflow",
     "version": 1,
     "name": "Execute Workflow",
@@ -134,6 +720,194 @@
       }
     ],
     "idempotent": false,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.filter",
+    "version": 1,
+    "name": "Filter",
+    "group": "flow",
+    "category": "Core",
+    "description": "Keeps only the items matching a condition.",
+    "icon": "list-filter",
+    "color": "cat-flow",
+    "aliases": [
+      "keep",
+      "where"
+    ],
+    "subtitle": "={{ $parameter.value1 }} {{ $parameter.operator }} {{ $parameter.value2 }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "value1",
+        "displayName": "Value 1",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "operator",
+        "displayName": "Operator",
+        "type": "options",
+        "default": "equals",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Equals",
+            "value": "equals"
+          },
+          {
+            "label": "Not Equals",
+            "value": "notEquals"
+          },
+          {
+            "label": "Contains",
+            "value": "contains"
+          },
+          {
+            "label": "Greater Than",
+            "value": "greaterThan"
+          },
+          {
+            "label": "Less Than",
+            "value": "lessThan"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "value2",
+        "displayName": "Value 2",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.htmlExtract",
+    "version": 1,
+    "name": "HTML Extract",
+    "group": "data",
+    "category": "Core",
+    "description": "Extracts text or attributes from HTML using a CSS selector.",
+    "icon": "code-xml",
+    "color": "cat-data",
+    "aliases": [
+      "scrape",
+      "css selector",
+      "parse html"
+    ],
+    "subtitle": "={{ $parameter.cssSelector }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "sourceField",
+        "displayName": "Source Field",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": "Field on each input item holding an HTML string.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "cssSelector",
+        "displayName": "CSS Selector",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": "article h1, .price",
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "attribute",
+        "displayName": "Attribute",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": "Extract this attribute's value instead of the element's text (e.g. \"href\").",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "destinationField",
+        "displayName": "Destination Field",
+        "type": "string",
+        "default": "extracted",
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
     "supportsErrorOutput": true,
     "maxItems": null
   },
@@ -413,6 +1187,78 @@
     "maxItems": null
   },
   {
+    "key": "neuroflow.limit",
+    "version": 1,
+    "name": "Limit",
+    "group": "data",
+    "category": "Core",
+    "description": "Keeps only the first or last N items.",
+    "icon": "scissors",
+    "color": "cat-data",
+    "aliases": [
+      "take",
+      "head",
+      "tail"
+    ],
+    "subtitle": "={{ $parameter.keep }} {{ $parameter.maxItems }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "maxItems",
+        "displayName": "Max Items",
+        "type": "number",
+        "default": 1,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "keep",
+        "displayName": "Keep",
+        "type": "options",
+        "default": "firstItems",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "First Items",
+            "value": "firstItems"
+          },
+          {
+            "label": "Last Items",
+            "value": "lastItems"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
     "key": "neuroflow.manualTrigger",
     "version": 1,
     "name": "Manual Trigger",
@@ -436,6 +1282,172 @@
     ],
     "credentials": [],
     "properties": [],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.markdown",
+    "version": 1,
+    "name": "Markdown",
+    "group": "data",
+    "category": "Core",
+    "description": "Converts a field between Markdown and HTML.",
+    "icon": "file-text",
+    "color": "cat-data",
+    "aliases": [
+      "md"
+    ],
+    "subtitle": "={{ $parameter.direction }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "direction",
+        "displayName": "Direction",
+        "type": "options",
+        "default": "markdownToHtml",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Markdown to HTML",
+            "value": "markdownToHtml"
+          },
+          {
+            "label": "HTML to Markdown",
+            "value": "htmlToMarkdown"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "sourceField",
+        "displayName": "Source Field",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "destinationField",
+        "displayName": "Destination Field",
+        "type": "string",
+        "default": "converted",
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.merge",
+    "version": 1,
+    "name": "Merge",
+    "group": "flow",
+    "category": "Core",
+    "description": "Combines two input branches into one.",
+    "icon": "merge",
+    "color": "cat-flow",
+    "aliases": [
+      "join",
+      "combine"
+    ],
+    "subtitle": "={{ $parameter.mode }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": "Input 1"
+      },
+      {
+        "type": "main",
+        "label": "Input 2"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "mode",
+        "displayName": "Mode",
+        "type": "options",
+        "default": "append",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Append",
+            "value": "append"
+          },
+          {
+            "label": "Merge by Key",
+            "value": "mergeByKey"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "keyField",
+        "displayName": "Key Field",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": "Field present on both inputs to match items by.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "mode": [
+              "mergeByKey"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
     "idempotent": true,
     "supportsErrorOutput": true,
     "maxItems": null
@@ -470,6 +1482,317 @@
     ],
     "credentials": [],
     "properties": [],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.postgres",
+    "version": 1,
+    "name": "Postgres",
+    "group": "action",
+    "category": "Database",
+    "description": "Runs a SQL query against a Postgres database.",
+    "icon": "database",
+    "color": "cat-app",
+    "aliases": [
+      "sql",
+      "postgresql"
+    ],
+    "subtitle": "={{ $parameter.query }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [
+      {
+        "types": [
+          "postgresApi"
+        ],
+        "required": true
+      }
+    ],
+    "properties": [
+      {
+        "name": "credentialId",
+        "displayName": "Credential",
+        "type": "credential",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": {
+          "credentialTypes": [
+            "postgresApi"
+          ]
+        },
+        "noDataExpression": false
+      },
+      {
+        "name": "query",
+        "displayName": "Query",
+        "type": "code",
+        "default": null,
+        "required": true,
+        "description": "Use %(name)s placeholders bound from Query Parameters.",
+        "placeholder": "SELECT * FROM users WHERE id = %(id)s",
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "queryParameters",
+        "displayName": "Query Parameters",
+        "type": "json",
+        "default": {},
+        "required": false,
+        "description": "Object of placeholder name -> value.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": false,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.redis",
+    "version": 1,
+    "name": "Redis",
+    "group": "action",
+    "category": "Database",
+    "description": "Reads or writes a key in Redis.",
+    "icon": "database-zap",
+    "color": "cat-app",
+    "aliases": [
+      "cache",
+      "kv"
+    ],
+    "subtitle": "={{ $parameter.operation }} {{ $parameter.key }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [
+      {
+        "types": [
+          "redisApi"
+        ],
+        "required": true
+      }
+    ],
+    "properties": [
+      {
+        "name": "credentialId",
+        "displayName": "Credential",
+        "type": "credential",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": {
+          "credentialTypes": [
+            "redisApi"
+          ]
+        },
+        "noDataExpression": false
+      },
+      {
+        "name": "operation",
+        "displayName": "Operation",
+        "type": "options",
+        "default": "get",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Get",
+            "value": "get"
+          },
+          {
+            "label": "Set",
+            "value": "set"
+          },
+          {
+            "label": "Increment",
+            "value": "incr"
+          },
+          {
+            "label": "Expire",
+            "value": "expire"
+          },
+          {
+            "label": "Publish",
+            "value": "publish"
+          },
+          {
+            "label": "List Push",
+            "value": "lpush"
+          },
+          {
+            "label": "Delete",
+            "value": "delete"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "key",
+        "displayName": "Key",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "value",
+        "displayName": "Value",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "operation": [
+              "set",
+              "publish",
+              "lpush"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "ttlSeconds",
+        "displayName": "TTL (seconds)",
+        "type": "number",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "operation": [
+              "set",
+              "expire"
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "destinationField",
+        "displayName": "Destination Field",
+        "type": "string",
+        "default": "result",
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": false,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.removeDuplicates",
+    "version": 1,
+    "name": "Remove Duplicates",
+    "group": "data",
+    "category": "Core",
+    "description": "Keeps only the first item for each distinct value.",
+    "icon": "copy-minus",
+    "color": "cat-data",
+    "aliases": [
+      "dedupe",
+      "distinct",
+      "unique"
+    ],
+    "subtitle": "={{ $parameter.compareField }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "compareField",
+        "displayName": "Compare Field",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": "Field to compare items by. Leave empty to compare each item's entire JSON body.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
     "idempotent": true,
     "supportsErrorOutput": true,
     "maxItems": null
@@ -610,6 +1933,522 @@
         "options": null,
         "loadOptionsMethod": null,
         "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.sort",
+    "version": 1,
+    "name": "Sort",
+    "group": "data",
+    "category": "Core",
+    "description": "Orders items by a field.",
+    "icon": "arrow-down-up",
+    "color": "cat-data",
+    "aliases": [
+      "order by"
+    ],
+    "subtitle": "={{ $parameter.sortField }} ({{ $parameter.order }})",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "sortField",
+        "displayName": "Sort Field",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "order",
+        "displayName": "Order",
+        "type": "options",
+        "default": "ascending",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Ascending",
+            "value": "ascending"
+          },
+          {
+            "label": "Descending",
+            "value": "descending"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.splitOut",
+    "version": 1,
+    "name": "Split Out",
+    "group": "data",
+    "category": "Core",
+    "description": "Splits an array field into one item per element.",
+    "icon": "split",
+    "color": "cat-data",
+    "aliases": [
+      "explode",
+      "flatten"
+    ],
+    "subtitle": "={{ $parameter.fieldToSplit }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "fieldToSplit",
+        "displayName": "Field To Split Out",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": "Field on each input item that holds an array.",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "includeOtherFields",
+        "displayName": "Include Other Fields",
+        "type": "boolean",
+        "default": false,
+        "required": false,
+        "description": "Keep the rest of the source item's fields alongside each split-out element (nested under the same field name if it isn't itself an object).",
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.stopAndError",
+    "version": 1,
+    "name": "Stop And Error",
+    "group": "flow",
+    "category": "Core",
+    "description": "Stops the workflow and reports a custom error message.",
+    "icon": "octagon-x",
+    "color": "cat-flow",
+    "aliases": [
+      "throw",
+      "fail",
+      "abort"
+    ],
+    "subtitle": "={{ $parameter.message }}",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "message",
+        "displayName": "Error Message",
+        "type": "string",
+        "default": null,
+        "required": true,
+        "description": null,
+        "placeholder": "Order total exceeds the approval limit",
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      }
+    ],
+    "idempotent": false,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.switch",
+    "version": 1,
+    "name": "Switch",
+    "group": "flow",
+    "category": "Core",
+    "description": "Routes each item to one of several outputs based on rules.",
+    "icon": "shuffle",
+    "color": "cat-flow",
+    "aliases": [
+      "route",
+      "case"
+    ],
+    "subtitle": "={{ $parameter.numOutputs }} outputs",
+    "documentationUrl": null,
+    "inputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "outputs": [
+      {
+        "type": "main",
+        "label": "0"
+      },
+      {
+        "type": "main",
+        "label": "1"
+      },
+      {
+        "type": "main",
+        "label": "2"
+      },
+      {
+        "type": "main",
+        "label": "fallback"
+      }
+    ],
+    "credentials": [],
+    "properties": [
+      {
+        "name": "numOutputs",
+        "displayName": "Number of Outputs",
+        "type": "options",
+        "default": 2,
+        "required": false,
+        "description": "How many numbered rule outputs to use (2-4).",
+        "placeholder": null,
+        "options": [
+          {
+            "label": "2",
+            "value": 2
+          },
+          {
+            "label": "3",
+            "value": 3
+          },
+          {
+            "label": "4",
+            "value": 4
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": null,
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "value1_0",
+        "displayName": "Rule 1: Value 1",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "numOutputs": [
+              2,
+              3,
+              4
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "operator_0",
+        "displayName": "Rule 1: Operator",
+        "type": "options",
+        "default": "equals",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Equals",
+            "value": "equals"
+          },
+          {
+            "label": "Not Equals",
+            "value": "notEquals"
+          },
+          {
+            "label": "Contains",
+            "value": "contains"
+          },
+          {
+            "label": "Greater Than",
+            "value": "greaterThan"
+          },
+          {
+            "label": "Less Than",
+            "value": "lessThan"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "numOutputs": [
+              2,
+              3,
+              4
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "value2_0",
+        "displayName": "Rule 1: Value 2",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "numOutputs": [
+              2,
+              3,
+              4
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "value1_1",
+        "displayName": "Rule 2: Value 1",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "numOutputs": [
+              2,
+              3,
+              4
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "operator_1",
+        "displayName": "Rule 2: Operator",
+        "type": "options",
+        "default": "equals",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Equals",
+            "value": "equals"
+          },
+          {
+            "label": "Not Equals",
+            "value": "notEquals"
+          },
+          {
+            "label": "Contains",
+            "value": "contains"
+          },
+          {
+            "label": "Greater Than",
+            "value": "greaterThan"
+          },
+          {
+            "label": "Less Than",
+            "value": "lessThan"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "numOutputs": [
+              2,
+              3,
+              4
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "value2_1",
+        "displayName": "Rule 2: Value 2",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "numOutputs": [
+              2,
+              3,
+              4
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "value1_2",
+        "displayName": "Rule 3: Value 1",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "numOutputs": [
+              3,
+              4
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "operator_2",
+        "displayName": "Rule 3: Operator",
+        "type": "options",
+        "default": "equals",
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": [
+          {
+            "label": "Equals",
+            "value": "equals"
+          },
+          {
+            "label": "Not Equals",
+            "value": "notEquals"
+          },
+          {
+            "label": "Contains",
+            "value": "contains"
+          },
+          {
+            "label": "Greater Than",
+            "value": "greaterThan"
+          },
+          {
+            "label": "Less Than",
+            "value": "lessThan"
+          }
+        ],
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "numOutputs": [
+              3,
+              4
+            ]
+          },
+          "hide": null
+        },
+        "typeOptions": null,
+        "noDataExpression": false
+      },
+      {
+        "name": "value2_2",
+        "displayName": "Rule 3: Value 2",
+        "type": "string",
+        "default": null,
+        "required": false,
+        "description": null,
+        "placeholder": null,
+        "options": null,
+        "loadOptionsMethod": null,
+        "displayOptions": {
+          "show": {
+            "numOutputs": [
+              3,
+              4
+            ]
+          },
+          "hide": null
+        },
         "typeOptions": null,
         "noDataExpression": false
       }
@@ -864,6 +2703,34 @@
         "noDataExpression": false
       }
     ],
+    "idempotent": true,
+    "supportsErrorOutput": true,
+    "maxItems": null
+  },
+  {
+    "key": "neuroflow.workflowTrigger",
+    "version": 1,
+    "name": "Workflow Trigger",
+    "group": "trigger",
+    "category": "Core",
+    "description": "Runs this workflow when called by an Execute Sub-workflow node.",
+    "icon": "workflow",
+    "color": "cat-trigger",
+    "aliases": [
+      "sub-workflow trigger",
+      "called by"
+    ],
+    "subtitle": null,
+    "documentationUrl": null,
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "main",
+        "label": null
+      }
+    ],
+    "credentials": [],
+    "properties": [],
     "idempotent": true,
     "supportsErrorOutput": true,
     "maxItems": null

@@ -60,6 +60,14 @@ def _handle_of(edge: GraphEdge) -> str:
     return edge.source_handle or "main"
 
 
+def _target_handle_of(edge: GraphEdge) -> str:
+    """Which of the target node's declared input ports this edge feeds --
+    e.g. Merge/Compare Datasets' "Input 1"/"Input 2". Defaults to "main"
+    for every existing single-input node, whose edges never set
+    `target_handle` -- see this phase's plan, finding #2."""
+    return edge.target_handle or "main"
+
+
 async def execute_dag(
     dag: DAG,
     ctx: ExecutionContext,
@@ -74,7 +82,12 @@ async def execute_dag(
     preloaded: dict[str, NodeResult] | None = None,
 ) -> None:
     completed: dict[str, NodeResult] = dict(preloaded or {})
-    inputs: dict[str, list[Item]] = {}
+    # node id -> input port handle -> items delivered on that port. Most
+    # nodes declare one "main" input port; Merge/Compare Datasets declare
+    # two, and `target_handle` (already modeled on `GraphEdge`, previously
+    # unused) is what keeps their two branches from being flattened
+    # together -- see this phase's plan, finding #2.
+    inputs: dict[str, dict[str, list[Item]]] = {}
     ready: deque[str] = deque()
     enqueued: set[str] = set(completed.keys())
 
@@ -96,10 +109,13 @@ async def execute_dag(
             ]
             enqueued.add(target)
             if active_incoming or not target_incoming:
-                gathered: list[Item] = []
+                gathered_by_port: dict[str, list[Item]] = {}
                 for e in active_incoming:
-                    gathered.extend(completed[e.source].outputs.get(_handle_of(e), []))
-                inputs[target] = gathered
+                    port_items = gathered_by_port.setdefault(_target_handle_of(e), [])
+                    port_items.extend(
+                        completed[e.source].outputs.get(_handle_of(e), [])
+                    )
+                inputs[target] = gathered_by_port
                 ready.append(target)
             else:
                 # Every upstream branch feeding this node is dead --
@@ -109,7 +125,7 @@ async def execute_dag(
     for node_id in dag.trigger_node_ids():
         if node_id in completed:
             continue
-        inputs[node_id] = trigger_items or []
+        inputs[node_id] = {"main": trigger_items or []}
         ready.append(node_id)
         enqueued.add(node_id)
 
@@ -129,7 +145,7 @@ async def execute_dag(
             *(
                 run_node(
                     dag.nodes_by_id[node_id],
-                    inputs.get(node_id, []),
+                    inputs.get(node_id, {}),
                     ctx,
                     execution_id=execution_id,
                     node_exec_repo=node_exec_repo,

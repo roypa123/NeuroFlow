@@ -25,7 +25,7 @@ importing the engine.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -66,10 +66,46 @@ class CredentialBinding:
     """A node's requested credential, pre-decrypted and paired with its
     type's `AuthenticationSpec` by the engine before the node runs -- a
     node never sees this construction, only `ctx.authenticated_request`'s
-    result. See docs/15-security-and-credentials.md #15.6 item 3."""
+    result. See docs/15-security-and-credentials.md #15.6 item 3.
+
+    `authenticate` is `None` for non-HTTP credential types (`postgresApi`,
+    `redisApi`) -- those nodes read `.data` directly instead of calling
+    `ctx.authenticated_request`. See this phase's plan, finding #3."""
 
     data: dict[str, Any]
-    authenticate: AuthenticationSpec
+    authenticate: AuthenticationSpec | None
+
+
+class NodeHelpers:
+    """Pagination/batching utilities, added because exactly two nodes need
+    them (Aggregate/Split Out's chunking, HTTP Request's pagination mode)
+    -- not a general-purpose kit built ahead of need. See this phase's
+    plan, finding #5."""
+
+    @staticmethod
+    def batch(items: list[Item], size: int) -> list[list[Item]]:
+        if size <= 0:
+            raise ValueError("batch size must be positive")
+        return [items[i : i + size] for i in range(0, len(items), size)]
+
+    @staticmethod
+    async def paginate(
+        fetch_page: Callable[[str | None], Awaitable[Any]],
+        extract_items: Callable[[Any], list[Item]],
+        extract_next: Callable[[Any], str | None],
+        *,
+        max_pages: int = 100,
+    ) -> AsyncIterator[list[Item]]:
+        """Generic cursor-follow loop: calls `fetch_page(cursor)` (cursor is
+        `None` for the first page), yields that page's items, and stops
+        once `extract_next` returns `None` or `max_pages` is reached."""
+        cursor: str | None = None
+        for _ in range(max_pages):
+            page = await fetch_page(cursor)
+            yield extract_items(page)
+            cursor = extract_next(page)
+            if cursor is None:
+                return
 
 
 @dataclass(slots=True, frozen=True)
@@ -92,6 +128,7 @@ class NodeExecutionContext:
         *,
         input_items: list[Item],
         params: dict[str, Any],
+        input_items_by_port: dict[str, list[Item]] | None = None,
         http: AsyncHttpClient | None = None,
         credentials: dict[str, CredentialBinding] | None = None,
         workflow: WorkflowInfo | None = None,
@@ -100,6 +137,10 @@ class NodeExecutionContext:
         resolver: Callable[[int], dict[str, Any]] | None = None,
     ) -> None:
         self.input_items = input_items
+        # Only Merge/Compare Datasets (2 declared input ports) read this;
+        # every single-input node keeps using `input_items` unchanged --
+        # see this phase's plan, finding #2.
+        self.input_items_by_port = input_items_by_port or {"main": input_items}
         self.params = params
         self.http = http
         self.credentials = credentials or {}
@@ -108,6 +149,9 @@ class NodeExecutionContext:
         self.run_index = run_index
         self._resolver = resolver
         self.logs: list[tuple[str, str]] = []
+
+    def helpers(self) -> NodeHelpers:
+        return NodeHelpers()
 
     def params_for_item(self, index: int) -> dict[str, Any]:
         if self._resolver is not None:
@@ -125,6 +169,11 @@ class NodeExecutionContext:
             raise RuntimeError("No HTTP client bound to this execution context")
         binding = self.credentials.get(requirement)
         if binding is not None:
+            if binding.authenticate is None:
+                raise RuntimeError(
+                    "Credential type has no authenticate spec -- it isn't"
+                    " meant for HTTP requests"
+                )
             kwargs = apply_authentication(binding.authenticate, binding.data, kwargs)
         return await self.http.request(method, url, **kwargs)
 

@@ -15,10 +15,23 @@ from app.modules.credentials.type_registry import (
 )
 
 
-def test_three_built_in_types_are_registered() -> None:
+def test_built_in_types_are_registered() -> None:
     keys = {t.key for t in list_credential_types()}
 
-    assert keys == {"httpHeaderAuth", "httpBasicAuth", "oauth2Generic"}
+    assert keys == {
+        "httpHeaderAuth",
+        "httpBasicAuth",
+        "oauth2Generic",
+        "postgresApi",
+        "redisApi",
+    }
+
+
+def test_database_credential_types_have_no_authenticate_spec() -> None:
+    for key in ("postgresApi", "redisApi"):
+        descriptor = get_credential_type(key)
+        assert descriptor is not None
+        assert descriptor.authenticate is None
 
 
 def test_unknown_type_returns_none() -> None:
@@ -53,6 +66,7 @@ def test_generic_auth_injects_a_templated_header() -> None:
 def test_generic_auth_can_template_the_header_name_too() -> None:
     descriptor = get_credential_type("httpHeaderAuth")
     assert descriptor is not None
+    assert descriptor.authenticate is not None
     spec = descriptor.authenticate
 
     kwargs = apply_authentication(
@@ -67,6 +81,7 @@ def test_basic_auth_base64_encodes_username_and_password() -> None:
 
     descriptor = get_credential_type("httpBasicAuth")
     assert descriptor is not None
+    assert descriptor.authenticate is not None
     spec = descriptor.authenticate
 
     kwargs = apply_authentication(
